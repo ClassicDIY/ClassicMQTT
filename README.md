@@ -46,6 +46,10 @@ You can scan this QR code from the Blynk App and you’ll get a ready-to-test pr
 
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/Blynk.png)
 
+<p>
+The Blynk app is available for Android and IOS (https://www.blynk.cc/)
+</p>
+
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/IPAD.png)
 
 ## License
