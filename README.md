@@ -28,9 +28,20 @@ https://www.dropbox.com/sh/z3kzddtj17vk9t2/AACFwHN0phXpMuD9T3-Kvt8Ta?dl=0
 <p>
 Online help for the Android app: http://graham22.github.io/Classic/classicmonitor/help_en.html
 </p>
+
+
+<p>
+<h3>Blynk app. </h3>
+</p>
+
+<p>
+http://docs.blynk.cc/
+</p>
+
 <p>
 You can scan this QR code from the Blynk App and you’ll get a ready-to-test project for the ESP32. Just put your Auth Token into the Wifi setup page when you configure the ESP32. 
 </p>
+
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/Blynk_QR.png)
 
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/Blynk.png)
