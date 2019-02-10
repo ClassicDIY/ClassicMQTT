@@ -14,7 +14,9 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/ESP32.png)
 
 <p>
-Please refer to the WifiManager for the ESP32 Wifi setup: https://github.com/tzapu/WiFiManager
+Please refer to the WifiManager for the ESP32 Wifi setup: https://github.com/tzapu/WiFiManager.
+The ESP32 can be flashed using ESPEasy https://github.com/letscontrolit/ESPEasy.
+the binary for the ESP32 is available here https://github.com/graham22/ClassicMQTT/releases.
 </p>
 
 <p>
