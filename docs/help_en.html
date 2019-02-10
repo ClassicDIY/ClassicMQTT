@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Classic Monitor</title>
+<meta charset="UTF-8">
+<meta name="description" content="Context Help file for the Classic Monitor Android App">
+<meta name="keywords" content="HTML,CSS">
+<meta name="author" content="Graham Ross">
+<link rel="stylesheet" type="text/css" href="layout-styles.css">
+</head>
+
+<body>
+<a id="Top"></a>
+<div class="container text-center">
+
+&nbsp;|&nbsp;
+<a href="#Bot">Bottom</a>
+&nbsp;|&nbsp;
+</div>
+<br>
+<div class="toc-container">
+
+<table id="t01">
+<tr><td>
+<a href="#Overview">Overview</a>
+</td></tr>
+<tr><td>
+<a href="#NavigationBar">Navigation Bar</a>
+</td></tr>
+<tr><td>
+<a href="#Settings">Settings</a>
+</td></tr>
+<tr><td>
+<a href="#StateOfCharge">State Of Charge</a>
+</td></tr>
+<tr><td>
+<a href="#System">System</a>
+</td></tr>
+<tr><td>
+<a href="#Load">Consumption</a>
+</tr></td>
+<tr><td>
+<a href="#Power">Power</a>
+</td></tr>
+<tr><td>
+<a href="#Energy">Energy</a>
+</td></tr>
+<tr><td>
+<a href="#Capacity">Capacity</a>
+</td></tr>
+<tr><td>
+<a href="#RealTimeChart">Live Chart</a>
+</td></tr>
+<tr><td>
+<a href="#Temperature">Temperature</a>
+</td></tr>
+<tr><td>
+<a href="#DayChart">Day Log Chart</a>
+</td></tr>
+<tr><td>
+<a href="#HourChart">Hour Log Chart</a>
+</td></tr>
+<tr><td>
+<a href="#Calendar">Day Log Calendar</a>
+</td></tr>
+<tr><td>
+<a href="#Info">Info</a>
+</td></tr>
+<tr><td>
+<a href="#Messages">Messages</a>
+</td></tr>
+<tr><td>
+<a href="#PortForwarding">Access your classic over the internet</a>
+</td></tr>
+<tr><td>
+<a href="#MQTT">Access your classic over the internet using MQTT</a>
+</td></tr>
+
+</table>
+
+</div>
+<hr style="page-break-before:always;">
+<div class="container text-center" >
+  <div class="row">
+	<div class="col-md-12">
+	  <h1>Classic Monitor</h1>
+	  <h2 class="text-center">Overview</h2>
+	</div>
+
+	<a id="Overview"></a>	
+	
+	<br>
+	<div class="center">
+	<p>
+		The Classic Monitor Android app displays information from your classic charge controller. Your charge controller must be connected and configured to your local network, please refer to the classic charge controller documentation provided by Midnite Solar.
+		Your Android device must also be connected to the same local network. 
+	</p>
+	<p>
+		With port forwarding and a DDNS service, the classic monitor can connect to your controller over the internet by adding a connection using the domain name provided by your ddns service and the public port number configured in your router.
+		A free DDNS service is available from <a href="https://www.noip.com" target="_blank"> www.noip.com</a>, your router must support the DDNS service you select.
+	</p>
+	<p>
+		This app currently supports the Classic & Classic Lite models 150, 200, 250 charge controllers, the Classic SL series is not supported since it does not have a network connection, 
+		basic support for the TriStar MPPT charge controllers is also included.
+	</p>
+	<p>
+		The app displays a different set of tabs depending on your configuration;
+	</p>
+	<p>
+		One or more classics without a WhizbangJr, the tabs are: 
+	</p>
+	<p>
+		<b>Power | Energy | Live Chart | Temperature | Day Log Chart | Hour Log Chart | Calendar | Info | Messages | About </b>
+	</p>
+
+	<p>
+		A single classic with a WhizbangJr, the tabs are: 
+	</p>
+	<p>
+		<b> Power | State Of Charge | Consumption | Energy | Capacity | Live Chart | Temperature | Day Log Chart | Hour Log Chart | Calendar | Info | Messages | About </b>
+	</p>
+
+	<p>
+		More than one classic with a WhizbangJr, the tabs are:
+	</p>
+	<p>
+		<b> Power | State Of Charge | System | Energy | Capacity | Live Chart | Temperature | Day Log Chart | Hour Log Chart | Calendar | Info | Messages | About </b>
+	</p>
+	<p>
+		A Morningstar Tri-Star MPPT, the tabs are:
+	</p>
+	<p>
+		<b> Power | Energy | Live Chart | Temperature | About </b>
+	</p>
+	<p>
+		With more than one controller and a WhizbangJr, a radio button is displayed on the Calendar and Energy tabs to allow to view the energy harvested by the controller or the system (sum of all the controllers).
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+	<a id="NavigationBar"></a>		
+	<h2 class="text-center" >Navigation bar</h2>
+	<img class="center_image" alt="NavBar_landscape.PNG" src="images_en/NavBar_landscape.png"  title="" >
+	<br>
+	<div class="center">
+	<p>
+		The Navigation bar displays when you slide from the left edge of the app to the right or by tapping the "hamburger" icon on the left of the action bar.
+	</p>
+	
+	<p>
+		Each controller being monitored by the app is displayed. 
+	</p>
+	<p>
+		You can remove an entry by sliding it to the right. 
+	</p>
+
+	<p>
+		An orange exclamation icon will appear next to an entry when the app cannot communicate with the controller.
+	</p>
+	</div>
+	
+	<br>
+	<img class="center_image" alt="AddDevice_landscape.PNG" src="images_en/AddDevice_landscape.png"  title="" >
+	<br>
+	<div class="center">
+	<p>
+		You can enter a static controller address by selecting the <b>+ADD</b> action. This will allow you to enter the port and network name or IP address of the controller. 
+	</p>
+	</div>
+
+	<hr style="page-break-before:always;">
+
+	<a id="Settings"></a>
+	<h2 class="text-center">Settings</h2>
+	<img class="center_image" alt="Settings_portrait.PNG" src="images_en/Settings_portrait.png"  title="">
+	<br>
+	<div class="center">
+	<p>
+		The settings dialog is displayed by pressing the gear icon on the top right of the action bar. 
+	</p>
+	<p>
+		<b>Auto detect classic</b>: The app listens for a UDP packet on the local network for any available classic controller not yet configured when this is selected. 
+		When de-selected, each classic must be added manually using the +ADD button when the left navigation drawer is displayed.
+	</p>
+	<p>
+		<b>Use Fahrenheit scale</b>: The temperature is displayed in farenheit on gauges, calendar and charts otherwise celcius.
+	</p>
+	<p>
+		<b>Show popup messages</b>: Messages are displayed at the bottom center of the display whenever the charge state changes, when de-selecting no messages appears.
+	</p>	
+	<p>
+		<b>System View Enabled</b>: When checked, the app will connect to all charge controlers and sum up the power and consumption values, this should be used when you have more than one charge controler charging a single battery bank.
+		When unchecked, each charge controler is independent, the app will only connect to the selected classic.
+	</p>
+	</div>
+	<a id="PVOutput"></a>
+	<h2 class="text-center">PV Output</h2>
+	<img class="center_image" alt="PVOutput_landscape.PNG" src="images_en/PVOutput_landscape.png"  title="">
+	<br>
+	<div class="center">
+	<p>
+		<b>PVOutput</b>: When you enable PVOutput and provide a key and systemId (SID), the app uploads the daily energy (kWh) recorded by your classic to the PVoutput.org web site. 
+	</p>
+
+	<p>
+		The <b>Clear recorded logs</b> button resets the last upload date, the app then re-uploads up to 30 days of recorded daily logs.
+	</p>
+	<p>
+		The app uploads the latest readings for each day since the last upload up to 30 days.
+	</p>
+	<p>
+		You will need to get an account at <a href="http://PVOutput.org" target="_blank"> PVOutput.org</a> to get a key and sid.
+	</p>
+	<p>
+		A PVOutput icon displays on the action bar that navigates to the PVOutput.org web site. 
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="StateOfCharge"></a>
+	<h2 class="text-center">State Of Charge</h2>
+	<img class="center_image" alt="StateOfCharge_landscape.PNG" src="images_en/StateOfCharge_landscape.png"  title="">
+	<br>
+	<div class="center">
+	<p> 
+		The State of Charge tab is displayed when you have at least one classic configured with a WhizbangJr. 
+	</p>
+	<p>
+		The bi-directional gauge can display the current or power, tap on the gauge to switch between the selection. 
+		A negative reading indicates that the battery is being discharged, a positive reading indicates charging.
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="System"></a>
+	<h2 class="text-center">System</h2>
+	<img class="center_image" alt="System_landscape.PNG" src="images_en/System_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The System tab is displayed when 'System View Enabled' is checked and you have more than one charger controller and you have at least one classic configured with a WhizbangJr.
+	</p>
+	<p>
+		The Power gauge displays the amount of power being generated by the system (the sum of all controllers).
+	</p>
+	<p>
+		The Consumption gauge displays the amount of power being consumed by the loads, this is calculated from the power generated minus the power going into the batteries.
+	</p>
+	</div>
+	
+	<hr style="page-break-before:always;">
+
+	<a id="Load"></a>
+	<h2 class="text-center">Consumption</h2>
+	<img class="center_image" alt="Consumption_landscape.PNG" src="images_en/Consumption_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Consumption gauge displays the amount of power being consumed by the loads, this is calculated from the power generated minus the power going into the batteries.
+	</p>
+	<p>
+		The Consumption tab is displayed when 'System View Enabled' is unchecked and you have one charger controller configured with a WhizbangJr.
+	</p>
+	</div>
+	
+	<hr style="page-break-before:always;">
+
+	<a id="Power"></a>
+	<h2 class="text-center">Power</h2>
+	<img class="center_image" alt="Power_landscape.PNG" src="images_en/Power_landscape.png"  title="">
+	<br>
+	<div class="center">
+	<p>
+		The Power tab displays the voltage and current feeding the controller from the solar panels and the voltage and current leaving the controller to the batteries and the resultant power reading for the selected controller.
+	</p>
+	<p>
+		The main power gauge include LEDs near the bottom of the gauge. The left LED is Aux 1 and the right LED is Aux 2
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="Energy"></a>
+	<h2 class="text-center">Energy</h2>
+	<img class="center_image" alt="Energy_landscape.PNG" src="images_en/Energy_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Energy tab displays the amount of energy harvested by the selected controller today and a total amount of energy harvested by the controller since it was put into service.
+	</p>
+	<p>
+		When you have more than one controller and a WhizbangJr, a radio button is displayed to allow to view the energy harvested by the controller or the system (sum of all the controllers).
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="Capacity"></a>
+	<h2 class="text-center">Capacity</h2>
+	<img class="center_image" alt="Capacity_landscape.PNG" src="images_en/Capacity_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Capacity tab displays the balance of energy in amp/Hours remaining in your batteries.
+	</p>
+	<p>
+		Please refer to the <a href="http://www.midnitesolar.com/pdfs/Whizbang_manual.pdf" target="_blank"> Midnite Solar WhizbangJr</a> documentation for more information.
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+	
+	<a id="RealTimeChart"></a>
+	<h2 class="text-center">Live Chart</h2>
+
+	<img class="center_image" alt="LiveChart.PNG" src="images_en/LiveChart.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Live Chart displays the battery volt (red), supply current (yellow) and a state of charge indicator.
+		If a WhizbangJr is detected, the chart will also display the battery charge/discharge current (cyan).
+	</p>
+	<p>
+	The charge state (line at the bottom of the chart) display as follows;
+	
+	<ul>
+	<li>Undefined: White</li>
+	<li>Resting: Black (code 0)</li>
+	<li>Absorb: Orange (code 3)</li>
+	<li>BulkMPPT: Green (code 4)</li>
+	<li>Float: Blue (code 5)</li>
+	<li>FloatMPPT: Cyan (code 6)</li>
+	<li>Equalize:  Pink (code 7)</li>
+	<li>HyperVOC: Red (code 10)</li>
+	<li>EQMPPT: Violet (code 18)</li>
+	</ul>
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="Temperature"></a>
+	<h2 class="text-center">Temperature</h2>
+
+	<img class="center_image" alt="Temperature_landscape.PNG" src="images_en/Temperature_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Temperature Tab displays the temperature in either Celsius or Farenheit of the Battery, internal FET & PCB and, if you have a WhizbangJr, the shunt temprature.
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="DayChart"></a>
+	<h2 class="text-center">Day Log Chart</h2>
+	<img class="center_image" alt="DayLogChart_landscape.PNG" src="images_en/DayLogChart_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Day Log Chart displays the same information as the calendar, A menu is at the top right of the action bar allows you to select the value charted.
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="HourChart"></a>
+	<h2 class="text-center">Hour Log Chart</h2>
+	<img class="center_image" alt="HourLogChart_landscape.PNG" src="images_en/HourLogChart_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Hour Log Chart display the information recorded by the classic for the current day, A menu is at the top right of the action bar allows you to select the value charted.
+	</p>
+	</div>
+	<hr style="page-break-before:always;">
+
+	<a id="Info"></a>
+	<h2 class="text-center">Info</h2>
+	<img class="center_image" alt="Info_landscape.PNG" src="images_en/Info_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Info tab display the boiler plate information of your device along with the last VOC value of the PV array.
+	</p>
+	</div>
+	
+	<hr style="page-break-before:always;">
+
+	<a id="Calendar"></a>
+	<h2 class="text-center">Day Log Calendar</h2>
+
+	<img class="center_image" alt="Calendar_landscape.PNG" src="images_en/Calendar_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Day Log Calendar displays the energy harvested for each day of the month along with the max pv, battery voltages, max temperature and power for the day.
+	</p>
+	<p>
+		Days where the system achieved float or equalize are indicated with "(Float)" and (Equalize).
+	</p>
+	<p>
+		If the calendar doesn't fully display on your screen, you can scroll its position by sliding the black part of the calendar.
+	</p>
+	<p>
+		Previous months can be viewed by sliding the grey part of the calendar up or down.
+	</p>
+	</div>
+
+	<hr style="page-break-before:always;">
+	
+	<a id="Messages"></a>
+	<h2 class="text-center">Messages</h2>
+	<img class="center_image" alt="Messages_landscape.PNG" src="images_en/Messages_landscape.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		The Messages tab displays Informational, Warning and Error messages from your controller indicated by an icon at the start of the message.
+		The following information is also included in the message tab;
+		<ul>
+		<li>Target Battery Voltage</li>
+		<li>Ending Amps</li>
+		<li>Float time</li>
+		<li>Equalize time</li>
+		</ul>
+	</p>
+	</div>
+	
+	<hr style="page-break-before:always;">
+	
+	<a id="PortForwarding"></a>
+	<h2 class="text-center">Access your classic over the internet</h2>
+	
+	<div class="center">	
+	<p>
+		<ul>
+			<li>Step 1 is to enable port forwarding in your router, Google port forwarding with the make of your router</li>
+		</ul>
+	</p>
+	</div>
+	
+	<img class="center_image" alt="PortForwarding.PNG" src="images_en/PortForwarding.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		Access your router admin page and setup port forwarding;
+		<ul>
+			<li>Add a port forwarding rule with the local IP address of the classic (ex: 192.168.0.22), the local port (default: 502) and the public port (ex: 49502, the public port number should be in the range of 49152–65535). Then save the changes and reboot the router.</li>
+			<li>Once rebooted, note of the wan IP address the router was assigned by your service provider.</li>
+			<li>Test this step by disabling the wifi on your phone to force it to use the cell network.</li>
+			<li>Open the Classic Monitor android app and delete any existing entries in the Nav Bar by sliding them to the right.</li>
+			<li>Add an new device entry using port number (ex: 49502) and the wan IP for the address by clicking the +Add while the Nav bar is in view.</li>
+			<li>Click Apply to save the new entry, the IP address should be displayed in the nav bar.</li>
+			<li>Click on the new entry to open the connection over the internet.</li>
+		</ul>
+	</p>
+	</div>
+	<br>
+	<div class="center">	
+	<p>
+		<ul>
+			<li>Step 2 is to use a ddns service to map your routers wan IP address to a network name</li>
+		</ul>
+	</p>
+	</div>
+	<img class="center_image" alt="DDNS.PNG" src="images_en/DDNS.png"  title="">
+	<br>
+	<div class="center">	
+	<p>
+		DDNS setup;
+		The DDNS service will assign a network name to your routers WAN IP address.
+		Your router is assigned a WAN IP address from your service provider whenever it is rebooted, this address may also expire every few weeks and be re-assigned a new address. The router needs to be setup to notify the DDNS service with the current WAN IP Address.
+		Please refer to http://www.noip.com/ for a more detailed explanation.
+		<ul>
+			<li>Access the router admin page, selected the ddns tab.</li>
+			<li>enter the DDNS service name (ex: noip.com), username/pw and the network name that you have reserved.</li>
+			<li>a few hours later your network name will be uploaded to DNS servers on the internet.</li>
+			<li>disable wifi on the phone again, deleted any existing entries, create an entry using the network name and 49502 for the port, click Apply to save the new entry, the domain name should be displayed in the nav bar.</li>
+			<li>Click on the new entry to open the connection over the internet.</li>
+		<ul>
+		
+	</p>
+	</div>
+
+		
+	<hr style="page-break-before:always;">
+    <a id="MQTT"></a>
+	<h2 class="text-center">Access your classic over the internet using MQTT</h2>
+
+	<div class="center">	
+	<p>
+		MQTT stands for MQ Telemetry Transport. It is a publish/subscribe, extremely simple and lightweight messaging protocol, designed for constrained devices and low-bandwidth, high-latency or unreliable networks.
+		The app can be setup as a MQTT publisher or subscriber, this setup allows you to view the classic data anywhere on the internet without having to setup port forwarding in your router.
+		Two Android devices are required, the 'publisher' is on your local network that reads the data from the classic using the Modbus protocol as usual, it will publish the data to a MQTT broker which normally resides in the 'cloud'.
+		A number of services exist both free and paid like <a href="http://www.dioty.co/" target="_blank">DIoTY</a> and <a href="https://aws.amazon.com/iot-core/" target="_blank">Amazon IOT core</a>.
+		A second Android device is setup as a subsciber that will consume the data from the MQTT broker and display the information as it does on the publisher.
+		Currently, the Day, Hour logs and calendar are not supported on the subscriber.
+	</p>
+	</div>
+	<br>
+		<div class="center">	
+	<p>
+		Here is an example setup using <a href="http://www.dioty.co/" target="_blank">DIoTY</a>. When you create an account on their site, they will send you an email with the required information to setup the app.
+		The publisher should be connected to your classic on the local network as usual, set the MQTT mode to 'MQTT Publisher' along with the other information in the email. 
+		The 'Publisher' device needs to be plugged in and configured to 'stay awake when charging', this setting is found under 'System->Advanced->Developer Options' on native android devices.
+		For the subscriber, you need to uncheck 'Auto detect classic' and remove any connected classics in the nav bar by sliding the entry to the right, restart the app for good measure.
+		Set the MQTT mode to 'MQTT Subscriber' along with the other information in the email from dioty.co.
+	</p>
+	</div>
+	<br>
+	<img class="center_image" alt="MQTT.PNG" src="images_en/MQTT.png"  title="">
+	<br>
+	
+		<br>
+		<div class="center">	
+	<p>
+		There are a number of free MQTT viewer application you can use to verify the traffic being sent to the broker, I used <a href="https://mqttfx.jensd.de/" target="_blank">MQTT.fx</a> on windows 10.
+		Subscribe to "/'root topic'/classic/stat/#" and "/'root topic'/classic/cmnd/#" once you connect to the broker in MQTT.fx to view the payloads. 
+	</p>
+	</div>
+	<br>
+	<img class="center_image" alt="MQTTfx.PNG" src="images_en/MQTTfx.png"  title="">
+	<br>
+	
+</div>
+
+<div class="container text-center">
+	<a id="Bot"></a>
+	&nbsp;|&nbsp;
+	<a href="#Top">Top</a>
+	&nbsp;|&nbsp;
+</div>
+</div>
+
+</body>
+</html>
