@@ -7,7 +7,7 @@
 https://www.dropbox.com/sh/z3kzddtj17vk9t2/AACFwHN0phXpMuD9T3-Kvt8Ta?dl=0
 </p>
 
-![Alt text](http://graham22.github.io/Classic/classicmonitor/images_en/StateOfCharge_landscape.png)
+![Alt text](https://graham22.github.io/ClassicMQTT/images_en/ESP32.png)
 
 <p>
 Classic Monitor MQTT/Blynk will read data from your classic over Modbus and publish it to a MQTT broker. It is a Read Only Program, it does not write to the Classic.
