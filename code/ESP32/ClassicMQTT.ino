@@ -338,6 +338,17 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 	}
 }
 
+void trimSlashes(const char *input, char *result)
+{
+	int i, j = 0;
+	for (i = 0; input[i] != '\0'; i++) {
+		if (input[i] != '/' && input[i] != '\\') {
+			result[j++] = input[i];
+		}
+	}
+	result[j] = '\0';
+}
+
 void setup() {
 	Serial.begin(115200);
 	while (!Serial) {
@@ -354,24 +365,30 @@ void setup() {
 	if (_config.IsDefault()) {
 		wifiManager.resetSettings();
 		SYSCFG* c = _config.Settings();
+		WiFiManagerParameter classic_ip_parameter("classic_ip", "Classic IP address", c->classic_ip, 33);
+		WiFiManagerParameter classic_port_parameter("classic_port", "Classic port", c->classic_port, 6, "type=\"number\" max=\"65535\"");
 		WiFiManagerParameter mqtt_server_parameter("server", "mqtt server", c->mqtt_host, 33);
 		WiFiManagerParameter mqtt_port_parameter("port", "mqtt port", c->mqtt_port, 6, "type=\"number\" min=\"1024\" max=\"65535\"");
 		WiFiManagerParameter mqtt_user_parameter("mqtt_user", "mqtt user", c->mqtt_user, 33);
 		WiFiManagerParameter mqtt_password_parameter("mqtt_password", "mqtt password", c->mqtt_pwd, 33, "type=\"password\"");
 		WiFiManagerParameter mqtt_root_topic_parameter("mqtt_root_topic", "mqtt root topic", c->mqtt_roottopic, 100);
-		WiFiManagerParameter classic_ip_parameter("classic_ip", "Classic IP address", c->classic_ip, 33);
-		WiFiManagerParameter classic_port_parameter("classic_port", "Classic port", c->classic_port, 6, "type=\"number\" max=\"65535\"");
 		WiFiManagerParameter blynk_token_parameter("blynk", "blynk token", c->blynk_token, 33);
+		WiFiManagerParameter mqtt_break_parameter("<br><br>");
+
 		wifiManager.setAPCallback(configModeCallback);
 		wifiManager.setSaveConfigCallback(saveConfigCallback);
+		wifiManager.addParameter(&classic_ip_parameter);
+		wifiManager.addParameter(&classic_port_parameter);
+
+		wifiManager.addParameter(&mqtt_break_parameter);
+		wifiManager.addParameter(&blynk_token_parameter);
+		wifiManager.addParameter(&mqtt_break_parameter);
+
 		wifiManager.addParameter(&mqtt_server_parameter);
 		wifiManager.addParameter(&mqtt_port_parameter);
 		wifiManager.addParameter(&mqtt_user_parameter);
 		wifiManager.addParameter(&mqtt_password_parameter);
 		wifiManager.addParameter(&mqtt_root_topic_parameter);
-		wifiManager.addParameter(&classic_ip_parameter);
-		wifiManager.addParameter(&classic_port_parameter);
-		wifiManager.addParameter(&blynk_token_parameter);
 		if (!wifiManager.startConfigPortal("Classic MQTT")) {
 			Serial.println("failed to connect and hit timeout");
 			delay(1000);
@@ -445,9 +462,11 @@ void setup() {
 
 	SYSCFG* c = _config.Settings();
 	_MqttClient.setServer(c->mqtt_host, atoi(c->mqtt_port));
-	char buf[64];
-	sprintf(buf, "/%s/classic/stat", c->mqtt_roottopic);
-	fullTopic_PUB = buf;
+	char buf1[64];
+	trimSlashes(c->mqtt_roottopic, buf1);
+	char buf2[64];
+	sprintf(buf2, "/%s/classic/stat", buf1);
+	fullTopic_PUB = buf2;
 	Serial.println(fullTopic_PUB);
 	_MqttClient.setCallback(MQTT_callback);
 	_classic.onData(modbusCallback);
@@ -480,8 +499,10 @@ void loop() {
 					// Once connected, publish an announcement...
 					publish("state", "ONLINE");
 					// ... and resubscribe
+					char buf1[64];
+					trimSlashes(c->mqtt_roottopic, buf1);
 					char buf[64];
-					sprintf(buf, "/%s/classic/cmnd/#", c->mqtt_roottopic);
+					sprintf(buf, "/%s/classic/cmnd/#", buf1);
 					_MqttClient.subscribe(buf);
 				}
 				else {

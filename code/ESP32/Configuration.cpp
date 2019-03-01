@@ -65,9 +65,9 @@ void Configuration::Default()
 	strcpy(_settings.mqtt_host, MQTT_HOST);
 	strcpy(_settings.mqtt_port, MQTT_PORT);
 	strcpy(_settings.mqtt_client, tmp);
-	strcpy(_settings.mqtt_user, MQTT_USER);
-	strcpy(_settings.mqtt_pwd, MQTT_PASSWORD);
-	strcpy(_settings.mqtt_roottopic, MQTT_ROOTTOPIC);
+	strcpy(_settings.mqtt_user, "");
+	strcpy(_settings.mqtt_pwd, "");
+	strcpy(_settings.mqtt_roottopic, "");
 	strcpy(_settings.blynk_token, "");
 	byte* ptr = &_settings.top;
 	for (int i = 0; i < EEPROM_SIZE; i++)
@@ -83,7 +83,7 @@ boolean Configuration::IsDefault() {
 }
 
 void Configuration::Print() {
-	Serial.printf("top: 0x%X\n version_major: 0x%X\n version_minor: 0x%X\n mqtt_host: %s\n  mqtt_port: %s\n mqtt_client: %s\n mqtt_user: %s\n mqtt_pwd: %s\n mqtt_fulltopic: %s\n classic_ip: %s\n classic_port: %s blynk_token: %s\n",
-		_settings.top, _settings.version_major, _settings.version_minor, _settings.mqtt_host, _settings.mqtt_port, _settings.mqtt_client, 
+	Serial.printf("top: 0x%X\n version_major: 0x%X\n version_minor: 0x%X\n mqtt_host: %s\n  mqtt_port: %s\n mqtt_client: %s\n mqtt_user: %s\n mqtt_pwd: %s\n mqtt_fulltopic: %s\n classic_ip: %s\n classic_port: %s\n blynk_token: %s\n",
+		_settings.top, _settings.version_major, _settings.version_minor, _settings.mqtt_host, _settings.mqtt_port, _settings.mqtt_client,
 		_settings.mqtt_user, _settings.mqtt_pwd, _settings.mqtt_roottopic, _settings.classic_ip, _settings.classic_port, _settings.blynk_token);
 }
