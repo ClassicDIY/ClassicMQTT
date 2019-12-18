@@ -11,13 +11,13 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 </p>
 
 <p align="center">
-  <img src="./docs/images_en/ESP32.PNG" width="640"/>
+  <img src="./docs/images_en/ESP32.png" width="640"/>
 </p>
 <p>
 Please refer to the IotWebConf for the ESP32 Wifi setup: https://github.com/prampec/IotWebConf.
 </p>
 <p align="center">
-  <img src="./Pictures/SetupPage.PNG" width="640"/>
+  <img src="./pictures/SetupPage.PNG" width="640"/>
 </p>
 <p>
 the binary for the ESP32 is available here https://github.com/graham22/ClassicMQTT/releases.
