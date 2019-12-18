@@ -1,11 +1,11 @@
 
-<h1>Classic Monitor ESP32 MQTT/Blynk publisher</h1>
+<h1>Classic Monitor ESP32 MQTT publisher</h1>
 
 
 
 <p>
-Classic Monitor MQTT/Blynk will read data from your classic over Modbus and publish it to a MQTT broker. It is a Read Only Program, it does not write to the Classic.
-You can also configure a Blynk app to display basic data from your classic.
+Classic Monitor MQTT will read data from your classic over Modbus and publish it to a MQTT broker. It is a Read Only Program, it does not write to the Classic.
+
 The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or implied.
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
 </p>
@@ -14,11 +14,9 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 ![Alt text](https://graham22.github.io/ClassicMQTT/images_en/ESP32.png)
 
 <p>
-Please refer to the WifiManager for the ESP32 Wifi setup: https://github.com/tzapu/WiFiManager.
+Please refer to the IotWebConf for the ESP32 Wifi setup: https://github.com/prampec/IotWebConf.
 </p>
-<p>
-The ESP32 FLASH DOWNLOAD TOOL tutorial is available here http://iot-bits.com/esp32/esp32-flash-download-tool-tutorial/.
-</p>
+![Alt text](https://graham22.github.io/ClassicMQTT/images_en/ESP32.png)
 <p>
 the binary for the ESP32 is available here https://github.com/graham22/ClassicMQTT/releases.
 </p>
@@ -35,28 +33,7 @@ https://www.dropbox.com/sh/z3kzddtj17vk9t2/AACFwHN0phXpMuD9T3-Kvt8Ta?dl=0
 Online help for the Android app: http://graham22.github.io/Classic/classicmonitor/help_en.html
 </p>
 
-
-<p>
-<h3>Blynk app. </h3>
-</p>
-
-<p>
-http://docs.blynk.cc/
-</p>
-
-<p>
-You can scan this QR code from the Blynk App and you’ll get a ready-to-test project for the ESP32. Just put your Auth Token into the Wifi setup page when you configure the ESP32. 
-</p>
-
-![Alt text](https://graham22.github.io/ClassicMQTT/images_en/Blynk_QR.png)
-
-![Alt text](https://graham22.github.io/ClassicMQTT/images_en/Blynk.png)
-
-<p>
-The Blynk app is available for Android and IOS (https://www.blynk.cc/)
-</p>
-
-![Alt text](https://graham22.github.io/ClassicMQTT/images_en/IPAD.png)
+Development environment used is Visual Studio CODE with the PlatformIO extension
 
 ## License
 ```
