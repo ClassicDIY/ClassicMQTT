@@ -64,6 +64,13 @@ Release notes:
 
 -----------------
 
+version 1.2
+
+<ul>
+<li>Updated to use IOTWebConf and AsyncMQTTClient</li>
+</ul>
+
+-----------------
 version 1.0.0
 
 <ul>
