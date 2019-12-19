@@ -40,6 +40,24 @@ Online help for the Android app: http://graham22.github.io/Classic/classicmonito
 
 Development environment used is Visual Studio CODE with the PlatformIO extension
 
+<p>
+<h3>Blynk app. </h3>
+</p>
+
+<p>
+http://docs.blynk.cc/
+</p>
+
+<p>
+You can scan this QR code from the Blynk App and you’ll get a ready-to-test project for the ESP32. Just put your Auth Token into the Wifi setup page when you configure the ESP32. 
+</p>
+<img src="./docs/images_en/Blynk_QR.png" width="640"/>
+<img src="./docs/images_en/Blynk.png" width="640"/>
+
+The Blynk app is available for Android and IOS (https://www.blynk.cc/)
+<img src="./docs/images_en/IPAD.png" width="640"/>
+
+
 ## License
 ```
 
