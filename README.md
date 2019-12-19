@@ -11,13 +11,16 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 </p>
 
 <p align="center">
-  <img src="./docs/images_en/ESP32.PNG" width="640"/>
+  <img src="./docs/images_en/ESP32.png" width="640"/>
 </p>
 <p>
 Please refer to the IotWebConf for the ESP32 Wifi setup: https://github.com/prampec/IotWebConf.
 </p>
 <p align="center">
-  <img src="./Pictures/SetupPage.PNG" width="640"/>
+  <img src="./pictures/SetupPage.PNG" width="640"/>
+  
+  The AP Password is initially set to ClassicMQTT and must be changed to be able to apply the changes (can reuse ClassicMQTT)
+  Once the app is in Station mode, the setup page can be accessed with admin:AP Password
 </p>
 <p>
 the binary for the ESP32 is available here https://github.com/graham22/ClassicMQTT/releases.
@@ -61,6 +64,13 @@ Release notes:
 
 -----------------
 
+version 1.2
+
+<ul>
+<li>Updated to use IOTWebConf and AsyncMQTTClient</li>
+</ul>
+
+-----------------
 version 1.0.0
 
 <ul>
