@@ -13,7 +13,7 @@
 #define WAKE_PUBLISH_RATE 5000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.2.1"
+#define CONFIG_VERSION "V1.2.2"
 #define CONFIG_LEN 32
 #define BLYNK_PRINT Serial // Enables Serial Monitor
 
@@ -25,9 +25,9 @@ HTTPUpdateServer _httpUpdater;
 IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
-char _classicPort[5];
+char _classicPort[6];
 char _mqttServer[IOTWEBCONF_WORD_LEN];
-char _mqttPort[5];
+char _mqttPort[6];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
 char _mqttRootTopic[IOTWEBCONF_WORD_LEN];
@@ -428,17 +428,19 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void connectToMqtt()
 {
-	logi("Connecting to MQTT...");
+	
 	if (WiFi.isConnected())
 	{
 		if (strlen(_mqttServer) > 0) // mqtt configured
 		{
+			logi("Connecting to MQTT...");
 			_mqttClient.connect();
 		}
 		if (!Blynk.connected())
 		{
 			if (strlen(_blynkToken) > 0)
 			{
+				logi("Connecting to Blynk...");
 				Blynk.connect();
 			}
 		}
