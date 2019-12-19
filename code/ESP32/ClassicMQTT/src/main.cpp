@@ -34,10 +34,10 @@ char _mqttRootTopic[IOTWEBCONF_WORD_LEN];
 char _willTopic[IOTWEBCONF_WORD_LEN];
 char _blynkToken[IOTWEBCONF_WORD_LEN];
 IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, 5, "text", NULL, "502");
+IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, 6, "text", NULL, "502");
 IotWebConfSeparator MQTT_seperatorParam = IotWebConfSeparator("MQTT");
 IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, 5, "text", NULL, "1883");
+IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, 6, "text", NULL, "1883");
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
 IotWebConfSeparator Blynk_seperatorParam = IotWebConfSeparator("Blynk");
@@ -162,23 +162,34 @@ void publishReadings()
 	publish("readings", s.c_str());
 }
 
-float GetFloatValue(int index, uint8_t *data, float div = 1.0)
-{
-	index *= 2;
-	int16_t temp = (data[index] << 8 | data[index + 1]);
-	return temp / div;
-}
 
-uint16_t Getint16Value(int index, uint8_t *data)
+uint16_t Getuint16Value(int index, uint8_t *data)
 {
 	index *= 2;
 	return (data[index] << 8 | data[index + 1]);
 }
 
-uint32_t Getint32Value(int index, uint8_t *data)
+int16_t Getint16Value(int index, uint8_t *data)
+{
+	index *= 2;
+	return (data[index] << 8 | data[index + 1]);
+}
+
+uint32_t Getuint32Value(int index, uint8_t *data)
 {
 	index *= 2;
 	return data[index + 2] << 24 | data[index + 3] << 16 | data[index] << 8 | data[index + 1];
+}
+
+int32_t Getint32Value(int index, uint8_t *data)
+{
+	index *= 2;
+	return data[index + 2] << 24 | data[index + 3] << 16 | data[index] << 8 | data[index + 1];
+}
+
+float GetFloatValue(int index, uint8_t *data, float div = 1.0)
+{
+	return Getint16Value(index, data) / div;
 }
 
 uint8_t GetMSBValue(int index, uint8_t *data)
@@ -302,50 +313,50 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		_chargeControllerInfo.Power = GetFloatValue(18, data);
 		_chargeControllerInfo.ChargeState = GetMSBValue(19, data);
 		_chargeControllerInfo.PVCurrent = GetFloatValue(20, data, 10.0);
-		_chargeControllerInfo.TotalEnergy = Getint32Value(25, data) / 10.0;
-		_chargeControllerInfo.InfoFlagsBits = Getint32Value(29, data);
+		_chargeControllerInfo.TotalEnergy = Getuint32Value(25, data) / 10.0;
+		_chargeControllerInfo.InfoFlagsBits = Getuint32Value(29, data);
 		_chargeControllerInfo.BatTemperature = GetFloatValue(31, data, 10.0);
 		_chargeControllerInfo.FETTemperature = GetFloatValue(32, data, 10.0);
 		_chargeControllerInfo.PCBTemperature = GetFloatValue(33, data, 10.0);
-		_chargeControllerInfo.FloatTimeTodaySeconds = Getint16Value(37, data);
-		_chargeControllerInfo.AbsorbTime = Getint16Value(38, data);
-		_chargeControllerInfo.EqualizeTime = Getint16Value(42, data);
+		_chargeControllerInfo.FloatTimeTodaySeconds = Getuint16Value(37, data);
+		_chargeControllerInfo.AbsorbTime = Getuint16Value(38, data);
+		_chargeControllerInfo.EqualizeTime = Getuint16Value(42, data);
 		_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
 		_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
 
 		if ((boilerPlateReadBitField & 0x1) == 0)
 		{
 			boilerPlateReadBitField |= 0x1;
-			uint16_t reg1 = Getint16Value(0, data);
+			uint16_t reg1 = Getuint16Value(0, data);
 			char buf[32];
 			sprintf(buf, "Classic %d (rev %d)", reg1 & 0x00ff, reg1 >> 8);
 			_chargeControllerInfo.model = buf;
-			int buildYear = Getint16Value(1, data);
-			int buildMonthDay = Getint16Value(2, data);
+			int buildYear = Getuint16Value(1, data);
+			int buildMonthDay = Getuint16Value(2, data);
 			sprintf(buf, "%d%02d%02d", buildYear, (buildMonthDay >> 8), (buildMonthDay & 0x00ff));
 			_chargeControllerInfo.buildDate = buf;
 			_chargeControllerInfo.lastVOC = GetFloatValue(21, data, 10.0);
-			_chargeControllerInfo.unitID = Getint32Value(10, data);
+			_chargeControllerInfo.unitID = Getuint32Value(10, data);
 		}
 	}
 	else if (byteCount == 44)
 	{ // whizbang readings
-		_chargeControllerInfo.PositiveAmpHours = Getint32Value(4, data);
-		_chargeControllerInfo.NegativeAmpHours = abs(Getint32Value(6, data));
+		_chargeControllerInfo.PositiveAmpHours = Getuint32Value(4, data);
+		_chargeControllerInfo.NegativeAmpHours = abs(Getuint32Value(6, data));
 		_chargeControllerInfo.NetAmpHours = 0; //Getint32Value(8, data); // todo causing deserialization exception in android
-		_chargeControllerInfo.ShuntTemperature = (Getint16Value(11, data) & 0x00ff) - 50.0f;
+		_chargeControllerInfo.ShuntTemperature = (Getuint16Value(11, data) & 0x00ff) - 50.0f;
 		_chargeControllerInfo.WhizbangBatCurrent = GetFloatValue(10, data, 10.0);
-		_chargeControllerInfo.SOC = Getint16Value(12, data);
-		_chargeControllerInfo.RemainingAmpHours = Getint16Value(16, data);
-		_chargeControllerInfo.TotalAmpHours = Getint16Value(20, data);
+		_chargeControllerInfo.SOC = Getuint16Value(12, data);
+		_chargeControllerInfo.RemainingAmpHours = Getuint16Value(16, data);
+		_chargeControllerInfo.TotalAmpHours = Getuint16Value(20, data);
 	}
 	else if (byteCount == 4)
 	{ // boilerplate data
 		if ((boilerPlateReadBitField & 0x02) == 0)
 		{
 			boilerPlateReadBitField |= 0x02;
-			_chargeControllerInfo.mpptMode = Getint16Value(0, data);
-			int Aux12FunctionS = (Getint16Value(1, data) & 0x3f00) >> 8;
+			_chargeControllerInfo.mpptMode = Getuint16Value(0, data);
+			int Aux12FunctionS = (Getuint16Value(1, data) & 0x3f00) >> 8;
 			_chargeControllerInfo.hasWhizbang = Aux12FunctionS == 18;
 		}
 	}
@@ -373,9 +384,9 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		{
 			boilerPlateReadBitField |= 0x08;
 			_chargeControllerInfo.VbattRegSetPTmpComp = GetFloatValue(0, data, 10.0);
-			_chargeControllerInfo.nominalBatteryVoltage = Getint16Value(1, data);
+			_chargeControllerInfo.nominalBatteryVoltage = Getuint16Value(1, data);
 			_chargeControllerInfo.endingAmps = GetFloatValue(2, data, 10.0);
-			_chargeControllerInfo.ReasonForResting = Getint16Value(31, data);
+			_chargeControllerInfo.ReasonForResting = Getuint16Value(31, data);
 		}
 	}
 	else if (byteCount == 16)
@@ -383,10 +394,10 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		if ((boilerPlateReadBitField & 0x10) == 0)
 		{
 			boilerPlateReadBitField |= 0x10;
-			short reg16387 = Getint16Value(0, data);
-			short reg16388 = Getint16Value(1, data);
-			short reg16389 = Getint16Value(2, data);
-			short reg16390 = Getint16Value(3, data);
+			short reg16387 = Getuint16Value(0, data);
+			short reg16388 = Getuint16Value(1, data);
+			short reg16389 = Getuint16Value(2, data);
+			short reg16390 = Getuint16Value(3, data);
 			char unit[16];
 			snprintf_P(unit, sizeof(unit), "%d", (reg16388 << 16) + reg16387);
 			_chargeControllerInfo.appVersion = unit;
