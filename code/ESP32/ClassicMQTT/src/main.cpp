@@ -128,10 +128,10 @@ void publishReadings() {
 	publish("readings",  s.c_str());
 }
 
-
 float GetFloatValue(int index, uint8_t* data, float div = 1.0) {
-	index *= 2;
-	return (data[index] << 8 | data[index + 1]) / div;
+   index *= 2;
+   int16_t temp = (data[index] << 8 | data[index + 1]);
+   return  temp/div;
 }
 
 uint16_t Getint16Value(int index, uint8_t* data) {
@@ -495,6 +495,7 @@ void setup() {
 		_mqttPort[0] = '\0';
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
+		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
 	{
