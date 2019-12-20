@@ -5,7 +5,6 @@
 #include <ArduinoJson.h>
 #include "AsyncMqttClient.h"
 #include <esp32ModbusTCP.h>
-#include <BlynkSimpleEsp32.h>
 #include "Log.h"
 #include "ChargeControllerInfo.h"
 
@@ -13,9 +12,8 @@
 #define WAKE_PUBLISH_RATE 5000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.2.2"
-#define CONFIG_LEN 32
-#define BLYNK_PRINT Serial // Enables Serial Monitor
+#define CONFIG_VERSION "V1.2.3"
+#define PORT_CONFIG_LEN 6
 
 AsyncMqttClient _mqttClient;
 TimerHandle_t mqttReconnectTimer;
@@ -25,23 +23,20 @@ HTTPUpdateServer _httpUpdater;
 IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
-char _classicPort[6];
+char _classicPort[PORT_CONFIG_LEN];
 char _mqttServer[IOTWEBCONF_WORD_LEN];
-char _mqttPort[6];
+char _mqttPort[PORT_CONFIG_LEN];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
 char _mqttRootTopic[IOTWEBCONF_WORD_LEN];
 char _willTopic[IOTWEBCONF_WORD_LEN];
-char _blynkToken[IOTWEBCONF_WORD_LEN];
 IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, 6, "text", NULL, "502");
+IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, PORT_CONFIG_LEN, "text", NULL, "502");
 IotWebConfSeparator MQTT_seperatorParam = IotWebConfSeparator("MQTT");
 IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, 6, "text", NULL, "1883");
+IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, PORT_CONFIG_LEN, "text", NULL, "1883");
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
-IotWebConfSeparator Blynk_seperatorParam = IotWebConfSeparator("Blynk");
-IotWebConfParameter blynkTokenParam = IotWebConfParameter("Blynk token", "blinkToken", _blynkToken, IOTWEBCONF_WORD_LEN);
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
@@ -66,33 +61,6 @@ ModbusRegisterBank _registers[] = {
 	{false, 4243, 32}
 	//{ false, 16386, 8 }
 };
-
-BLYNK_READ(V0)
-{
-	Blynk.virtualWrite(V0, _chargeControllerInfo.BatVoltage);
-}
-
-BLYNK_READ(V1)
-{
-	Blynk.virtualWrite(V1, _chargeControllerInfo.BatCurrent);
-}
-
-BLYNK_READ(V2)
-{
-	Blynk.virtualWrite(V2, _chargeControllerInfo.SOC);
-}
-BLYNK_READ(V3)
-{
-	Blynk.virtualWrite(V3, _chargeControllerInfo.Power);
-}
-BLYNK_READ(V4)
-{
-	Blynk.virtualWrite(V4, _chargeControllerInfo.PVVoltage);
-}
-BLYNK_READ(V5)
-{
-	Blynk.virtualWrite(V5, _chargeControllerInfo.PVCurrent);
-}
 
 void publish(const char *subtopic, const char *value, boolean retained = false)
 {
@@ -161,7 +129,6 @@ void publishReadings()
 	serializeJson(root, s);
 	publish("readings", s.c_str());
 }
-
 
 uint16_t Getuint16Value(int index, uint8_t *data)
 {
@@ -428,21 +395,12 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void connectToMqtt()
 {
-	
 	if (WiFi.isConnected())
 	{
 		if (strlen(_mqttServer) > 0) // mqtt configured
 		{
 			logi("Connecting to MQTT...");
 			_mqttClient.connect();
-		}
-		if (!Blynk.connected())
-		{
-			if (strlen(_blynkToken) > 0)
-			{
-				logi("Connecting to Blynk...");
-				Blynk.connect();
-			}
 		}
 	}
 }
@@ -485,13 +443,8 @@ void handleRoot()
 	s += "<li>MQTT root topic: ";
 	s += _mqttRootTopic;
 	s += "</ul>";
-	s += "<ul>";
-	s += "<li>Blynk token: ";
-	s += _blynkToken;
-	s += "</ul>";
 	s += "Go to <a href='config'>configure page</a> to change values.";
 	s += "</body></html>\n";
-
 	_webServer.send(200, "text/html", s);
 }
 
@@ -504,14 +457,10 @@ boolean formValidator()
 {
 	boolean valid = true;
 	int mqttServerParamLength = _webServer.arg(mqttServerParam.getId()).length();
-	int blynkTokenParamLength = _webServer.arg(blynkTokenParam.getId()).length();
 	if (mqttServerParamLength == 0)
 	{
-		if (blynkTokenParamLength == 0)
-		{
-			mqttServerParam.errorMessage = "MQTT server or Blynk token is required";
-			valid = false;
-		}
+		mqttServerParam.errorMessage = "MQTT server is required";
+		valid = false;
 	}
 	return valid;
 }
@@ -584,8 +533,6 @@ void setup()
 	_iotWebConf.addParameter(&mqttPortParam);
 	_iotWebConf.addParameter(&mqttUserNameParam);
 	_iotWebConf.addParameter(&mqttUserPasswordParam);
-	_iotWebConf.addParameter(&Blynk_seperatorParam);
-	_iotWebConf.addParameter(&blynkTokenParam);
 
 	// setup callbacks for IotWebConf
 	_iotWebConf.setConfigSavedCallback(&configSaved);
@@ -601,7 +548,6 @@ void setup()
 		_mqttPort[0] = '\0';
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
-		_blynkToken[0] = '\0';
 		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
@@ -626,10 +572,6 @@ void setup()
 			_pClassic = new esp32ModbusTCP(10, ip, port);
 			_pClassic->onData(modbusCallback);
 			_pClassic->onError(modbusErrorCallback);
-		}
-		if (strlen(_blynkToken) > 0)
-		{
-			Blynk.config(_blynkToken);
 		}
 	}
 	// Set up required URL handlers on the web server.
@@ -673,6 +615,5 @@ void loop()
 				_publishRate = SNOOZE_PUBLISH_RATE;
 			}
 		}
-		Blynk.run();
 	}
 }
