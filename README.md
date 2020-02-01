@@ -12,6 +12,9 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 
 <p align="center">
   <img src="./docs/images_en/ESP32.png" width="640"/>
+  
+  <a href="https://www.amazon.ca/Development-Wireless-Module-Bluetooth-Arduino/dp/B07HG5XHLB/ref=sr_1_7?crid=2TVCRO81CV0D4&keywords=esp32+development+board&qid=1580566571&sprefix=esp32%2Caps%2C367&sr=8-7">ESP32 dev board</a>
+ 
 </p>
 <p>
 Please refer to the IotWebConf for the ESP32 Wifi setup: https://github.com/prampec/IotWebConf.
