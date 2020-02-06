@@ -503,11 +503,15 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 		Wake();
 		logd("Wake poll rate");
 	}
-	if (strncmp(pl, "{\"INFO\"}", len) == 0)
+	else if (strncmp(pl, "{\"INFO\"}", len) == 0)
 	{
 		boilerPlateInfoPublished = false;
 		Wake();
 		logd("info request received");
+	}
+	else
+	{
+		logd("MQTT Message {%s} not recognized!", pl);
 	}
 }
 
@@ -557,13 +561,14 @@ void setup()
 		_mqttClient.onDisconnect(onMqttDisconnect);
 		_mqttClient.onMessage(onMqttMessage);
 		_mqttClient.onPublish(onMqttPublish);
+		sprintf(_mqttRootTopic, "%s", _iotWebConf.getThingName());
+		sprintf(_willTopic, "%s/tele/LWT", _mqttRootTopic);
 		IPAddress ip;
 		if (ip.fromString(_mqttServer))
 		{
 			int port = atoi(_mqttPort);
 			_mqttClient.setServer(ip, port);
 			_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
-			sprintf(_willTopic, "%s/tele/LWT", _mqttRootTopic);
 			_mqttClient.setWill(_willTopic, 0, true, "Offline");
 		}
 		if (ip.fromString(_classicIP))
@@ -578,8 +583,6 @@ void setup()
 	_webServer.on("/", handleRoot);
 	_webServer.on("/config", [] { _iotWebConf.handleConfig(); });
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
-	// generate unique id from mac address NIC segment
-	sprintf(_mqttRootTopic, "%s", _iotWebConf.getThingName());
 	_lastPublishTimeStamp = millis() + MODBUS_POLL_RATE;
 	boilerPlatePollRate = millis();
 	logi("Done setup");
