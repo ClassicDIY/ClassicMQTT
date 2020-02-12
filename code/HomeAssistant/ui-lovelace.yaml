@@ -1,0 +1,215 @@
+resources:
+  - type: module
+    url: /community_plugin/canvas-gauge-card/canvas-gauge-card.js
+
+  - badges:
+      - entity: sensor.classicmqtt_chargestate
+        name: Charge State
+        tap_action:
+          action: call-service
+          service: mqtt.publish
+          service_data:
+            topic: ClassicMQTT/classic/cmnd/wake
+    cards:
+      - cards:
+          - card_height: 345
+            entity: sensor.classicmqtt_power
+            gauge:
+              borderInnerWidth: 0
+              borderMiddleWidth: 0
+              borderOuterWidth: 0
+              borderShadowWidth: 0
+              borders: false
+              height: 345
+              highlights:
+                - color: 'rgba(50, 200, 50, .75)'
+                  from: 800
+                  to: 1000
+              majorTicks:
+                - '0'
+                - '100'
+                - '200'
+                - '300'
+                - '400'
+                - '500'
+                - '600'
+                - '700'
+                - '800'
+                - '900'
+                - '1000'
+              maxValue: 1000
+              minValue: 0
+              minorTicks: 2
+              startAngle: 40
+              strokeTicks: true
+              ticksAngle: 280
+              title: Power
+              type: radial-gauge
+              units: W
+              valueBox: false
+              width: 345
+            type: 'custom:canvas-gauge-card'
+          - card_height: 145
+            entity: sensor.classicmqtt_soc
+            gauge:
+              borderInnerWidth: 0
+              borderMiddleWidth: 0
+              borderOuterWidth: 0
+              borderShadowWidth: 0
+              borders: false
+              height: 200
+              highlights:
+                - color: 'rgba(50, 200, 50, .75)'
+                  from: 80
+                  to: 100
+              majorTicks:
+                - '0'
+                - '10'
+                - '20'
+                - '30'
+                - '40'
+                - '50'
+                - '60'
+                - '70'
+                - '80'
+                - '90'
+                - '100'
+              maxValue: 100
+              minValue: 0
+              minorTicks: 2
+              startAngle: 90
+              strokeTicks: true
+              ticksAngle: 180
+              title: SOC (%)
+              type: radial-gauge
+              valueBox: false
+              width: 200
+            type: 'custom:canvas-gauge-card'
+          - card_height: 200
+            cards:
+              - entity: sensor.classicmqtt_shunttemperature
+                gauge:
+                  height: 200
+                  title: Shunt
+                  type: linear-gauge
+                  units: °C
+                  valueBox: false
+                  width: 100
+                type: 'custom:canvas-gauge-card'
+              - entity: sensor.classicmqtt_pcbtemperature
+                gauge:
+                  height: 200
+                  title: PCB
+                  type: linear-gauge
+                  units: °C
+                  valueBox: false
+                  width: 100
+                type: 'custom:canvas-gauge-card'
+              - entity: sensor.classicmqtt_fettemperature
+                gauge:
+                  height: 200
+                  title: FET
+                  type: linear-gauge
+                  units: °C
+                  valueBox: false
+                  width: 100
+                type: 'custom:canvas-gauge-card'
+              - entity: sensor.classicmqtt_battemperature
+                gauge:
+                  height: 200
+                  title: BAT
+                  type: linear-gauge
+                  units: °C
+                  valueBox: false
+                  width: 100
+                type: 'custom:canvas-gauge-card'
+            type: horizontal-stack
+        type: vertical-stack
+      - cards:
+          - card_height: 345
+            entity: sensor.classicmqtt_whizbangbatcurrent
+            gauge:
+              borderInnerWidth: 0
+              borderMiddleWidth: 0
+              borderOuterWidth: 0
+              borderShadowWidth: 0
+              borders: false
+              height: 345
+              highlights:
+                - color: 'rgba(50, 200, 50, .75)'
+                  from: 80
+                  to: 100
+              majorTicks:
+                - '-100'
+                - '-90'
+                - '-80'
+                - '-70'
+                - '-60'
+                - '-50'
+                - '-40'
+                - '-30'
+                - '-20'
+                - '-10'
+                - '0'
+                - '10'
+                - '20'
+                - '30'
+                - '40'
+                - '50'
+                - '60'
+                - '70'
+                - '80'
+                - '90'
+                - '100'
+              maxValue: 100
+              minValue: -100
+              minorTicks: 2
+              startAngle: 40
+              strokeTicks: true
+              ticksAngle: 280
+              title: Whizbang Current
+              type: radial-gauge
+              units: A
+              valueBox: false
+              width: 345
+            type: 'custom:canvas-gauge-card'
+          - card_height: 145
+            entity: sensor.classicmqtt_batvoltage
+            gauge:
+              borderInnerWidth: 0
+              borderMiddleWidth: 0
+              borderOuterWidth: 0
+              borderShadowWidth: 0
+              borders: false
+              height: 200
+              highlights:
+                - color: 'rgba(50, 200, 50, .75)'
+                  from: 14
+                  to: 16
+              majorTicks:
+                - '0'
+                - '2'
+                - '4'
+                - '6'
+                - '8'
+                - '10'
+                - '12'
+                - '14'
+                - '16'
+              maxValue: 16
+              minValue: 0
+              minorTicks: 2
+              startAngle: 90
+              strokeTicks: true
+              ticksAngle: 180
+              title: Battery
+              type: radial-gauge
+              units: V
+              valueBox: false
+              width: 300
+            type: 'custom:canvas-gauge-card'
+        title: null
+        type: vertical-stack
+    panel: false
+    path: classic
+    title: Classic

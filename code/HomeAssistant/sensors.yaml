@@ -1,0 +1,71 @@
+# 
+# add sensor: !include sensors.yaml to configuration.yaml
+  
+- platform: mqtt
+  name: ClassicMQTT_BatVoltage
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.BatVoltage}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_ChargeState
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{ value_json.ChargeState }}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_BatCurrent
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.BatCurrent}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_WhizbangBatCurrent
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.WhizbangBatCurrent}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_PVVoltage
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.PVVoltage}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_PVCurrent
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.PVCurrent}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_Power
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.Power}}'
+  qos: 0
+
+- platform: mqtt
+  name: ClassicMQTT_SOC
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.SOC}}'
+  qos: 0
+  
+- platform: mqtt
+  name: ClassicMQTT_BatTemperature
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.BatTemperature}}'
+  qos: 0
+- platform: mqtt
+  name: ClassicMQTT_FETTemperature
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.FETTemperature}}'
+  qos: 0
+- platform: mqtt
+  name: ClassicMQTT_PCBTemperature
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.PCBTemperature}}'
+  qos: 0
+- platform: mqtt
+  name: ClassicMQTT_ShuntTemperature
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: '{{value_json.ShuntTemperature}}'
+  qos: 0
