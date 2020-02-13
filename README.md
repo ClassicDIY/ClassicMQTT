@@ -29,13 +29,17 @@ Please refer to the IotWebConf for the ESP32 Wifi setup: https://github.com/pram
 the binary for the ESP32 is available here https://github.com/graham22/ClassicMQTT/releases.
 </p>
 
-<p>
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
+
+<p>
+https://drive.google.com/open?id=1cQhjAWIH4PhgNMwWsTN4Lxa3oNaQ4q0p
 </p>
 
 <p>
-https://www.dropbox.com/sh/z3kzddtj17vk9t2/AACFwHN0phXpMuD9T3-Kvt8Ta?dl=0
+If you have Google Drive installed on your device, simply click on the link to install.
+You might be asked to allow the installation of an app from an unknown source.</h3>
 </p>
+
 
 <p>
 Online help for the Android app: http://graham22.github.io/Classic/classicmonitor/help_en.html
