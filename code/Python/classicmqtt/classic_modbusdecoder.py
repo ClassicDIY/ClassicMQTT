@@ -6,7 +6,6 @@ from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.compat import iteritems
 from collections import OrderedDict
 
-
 # --------------------------------------------------------------------------- # 
 # Read from the address and return a decoder
 # --------------------------------------------------------------------------- # 
@@ -14,7 +13,7 @@ def getRegisters(theClient, addr, count):
     result = theClient.read_holding_registers(addr, count,  unit=10)
     if result.function_code >= 0x80:
         print("error getting {} for {} bytes".format(addr, count))
-        return {}
+        return dict()
 
     return result.registers
 
