@@ -63,34 +63,43 @@ def encodeClassicData_readings(decoded):
     # "PCBTemperature":12.71
     classicData["PCBTemperature"] = decoded["PCBTemperature"]
 
-
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))
 
 def encodeClassicData_info(decoded):
     
     classicData = {}
+    # "appVersion":"",
     classicData["appVersion"] = ""
-    classicData["buildDate"] = "{}{:02d}{:02d}".format(decoded["Year"],decoded["Month"],decoded["Day"])
     #Assemble the string
     uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"]]
+    # "deviceName":"CLASSIC",
     classicData["deviceName"] = "".join(chr(x) for x in uint_array)
+    # "buildDate":"20180206",
+    classicData["buildDate"] = "{}{:02d}{:02d}".format(decoded["Year"],decoded["Month"],decoded["Day"])
+    # "deviceType":"Classic",
     classicData["deviceType"] = "Classic"
+    # "endingAmps":13.01,
     classicData["endingAmps"] = decoded["endingAmps"]
+    # "hasWhizbang":true,
     classicData["hasWhizbang"] = (decoded["Aux1and2Function"] & 0x3f00)>>8 == 18
+    # "lastVOC":10.21,
     classicData["lastVOC"] = decoded["lastVOC"]
-	
+    # "model":"Classic 150 (rev 4)",
     #print("Classic {} (rev {})".format(decoded["Type"],decoded["PCB"]))
     classicData["model"] = "Classic {}V (rev {})".format(decoded["Type"],decoded["PCB"])
+    # "mpptMode":11,
     classicData["mpptMode"] = decoded["MPPTMode"]
+    # "netVersion":"",
     classicData["netVersion"] = ""
+    # "nominalBatteryVoltage":24,
     classicData["nominalBatteryVoltage"] = decoded["nominalBatteryVoltage"]
+    # "unitID":-791134691
     classicData["unitID"] = decoded["unitID"]
 
     mac = "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}".format(decoded["mac_5"],decoded["mac_4"],decoded["mac_3"],decoded["mac_2"],decoded["mac_1"],decoded["mac_0"])
     classicData["mac"] = mac.upper()
-    print(mac.upper())
+    #print(mac.upper())
 
-#    print ("app_rev:{} net_rev:{}".format(decoded["app_rev]"], decoded["net_rev"]))
-
+    #print ("app_rev:{} net_rev:{}".format(decoded["app_rev]"], decoded["net_rev"]))
 
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))

@@ -1,16 +1,15 @@
+#!/usr/bin/env python
+ 
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
-from pymodbus.payload import BinaryPayloadBuilder
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.compat import iteritems
-
 from collections import OrderedDict
 
 
 # --------------------------------------------------------------------------- # 
 # Read from the address and return a decoder
 # --------------------------------------------------------------------------- # 
-
 def getRegisters(theClient, addr, count):
     result = theClient.read_holding_registers(addr, count,  unit=10)
     if result.function_code >= 0x80:
@@ -18,7 +17,6 @@ def getRegisters(theClient, addr, count):
         return {}
 
     return result.registers
-
 
 
 def getDataDecoder(registers):
@@ -123,11 +121,6 @@ def doDecode(addr, decoder):
             ('app_rev', decoder.decode_32bit_uint()),                     #16387, 16388
             ('net_rev', decoder.decode_32bit_uint()),                     #16387, 16388
         ])
-
-
-    #for name, value in iteritems(decoded):
-    #    print("%s\t" % name, value if isinstance(value, int) else value)
-    #print()
 
     return decoded
 
