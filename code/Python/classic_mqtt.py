@@ -24,6 +24,7 @@ MQTT_SNOOZE_COUNT         = 60                  #When no one is listening, publi
 WAKE_COUNT                = 60                  #The number of times to publish after getting a "wake"
 MODBUS_MAX_ERROR_COUNT    = 300
 MQTT_MAX_ERROR_COUNT      = 300
+MAIN_LOOP_SLEEP           = 5                   #Seconds to sleep in the main loop
 
 classicModbusData         = dict()
 
@@ -36,6 +37,7 @@ modbusDataGood            = False
 modbusErrorCount          = 0
 
 mqttConnected             = False
+mqttErrorCount            = 0
 
 doStop                    = False
 
@@ -110,20 +112,30 @@ def getModbusData():
 
     return decoded
 
+# --------------------------------------------------------------------------- # 
+# MQTT On Connect function
+# --------------------------------------------------------------------------- # 
 def on_connect(client, userdata, flags, rc):
     global mqttConnected
     if rc==0:
         mqttConnected = True
+        mqttErrorCount = 0
         log.debug("MQTT connected OK Returned code={}".format(rc))
     else:
         mqttConnected = False
         log.error("MQTT Bad connection Returned code={}".format(rc))
 
+# --------------------------------------------------------------------------- # 
+# MQTT On Disconnect
+# --------------------------------------------------------------------------- # 
 def on_disconnect(client, userdata, rc):
     global mqttConnected
     mqttConnected = False
     log.debug("on_disconnect: Disconnected")
 
+# --------------------------------------------------------------------------- # 
+# MQTT On Message
+# --------------------------------------------------------------------------- # 
 def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
@@ -131,6 +143,8 @@ def on_message(client, userdata, message):
         global wakeCount, infoPublished, snoozing, doStop, mqttConnected
 
         mqttConnected = True #got a message so we must be up again...
+        mqttErrorCount = 0
+
         msg = message.payload.decode(encoding='UTF-8')
         msg = msg.upper()
 
@@ -148,7 +162,7 @@ def on_message(client, userdata, message):
             
 
 # --------------------------------------------------------------------------- # 
-# Read from the address and return a decoder
+# MQTT Publish the data
 # --------------------------------------------------------------------------- # 
 def mqttPublish(client, data, subtopic):
     global mqttRoot, mqttConnected
@@ -158,14 +172,20 @@ def mqttPublish(client, data, subtopic):
     
     if not mqttConnected:
         log.error("MQTT not connected, skipping publish")
+        mqttErrorCount = mqttErrorCount + 1
+        
 
     try:
         client.publish(topic,data)
     except:
         mqttConnected = False
+        mqttErrorCount = mqttErrorCount + 1
         e = sys.exc_info()[0]
         log.error("MQTT Publish Error Topic:{} e:{}".format(topic, e))
 
+# --------------------------------------------------------------------------- # 
+# Publish
+# --------------------------------------------------------------------------- # 
 def publish(client):
     global infoPublished, classicModbusData, modbusDataGood
 
@@ -180,6 +200,9 @@ def publish(client):
 
     mqttPublish(client,encodeClassicData_readings(classicModbusData),"readings")
 
+# --------------------------------------------------------------------------- # 
+# Publish handling Snoozing etc.
+# --------------------------------------------------------------------------- # 
 def publishReadingsAndInfo(client):
     global snoozing, snoozeCount, infoPublished, wakeCount
 
@@ -198,6 +221,9 @@ def publishReadingsAndInfo(client):
             wakeCount = 0
     
 
+# --------------------------------------------------------------------------- # 
+# Async called to read from MODBUS
+# --------------------------------------------------------------------------- # 
 def modbus_periodic(modbus_stop):
 
     global classicModbusData
@@ -209,6 +235,9 @@ def modbus_periodic(modbus_stop):
         # set myself to be called again in correct number of seconds
         threading.Timer(MODBUS_POLL_RATE, modbus_periodic, [modbus_stop]).start()
 
+# --------------------------------------------------------------------------- # 
+# Async called to read publish data to MQTT
+# --------------------------------------------------------------------------- # 
 def mqtt_publish_periodic(mqtt_stop, client):
     # do something here ...
     if not mqtt_stop.is_set():
@@ -218,6 +247,9 @@ def mqtt_publish_periodic(mqtt_stop, client):
         # set myself to be called again in correct number of seconds
         threading.Timer(MQTT_PUBLISH_RATE, mqtt_publish_periodic, [mqtt_stop, client]).start()
 
+# --------------------------------------------------------------------------- # 
+# Handle the command line arguments
+# --------------------------------------------------------------------------- # 
 def handleArgs(argv):
     
     global classicHost, classicPort,mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
@@ -270,29 +302,33 @@ def handleArgs(argv):
     mqttUser = username
     mqttPassword = password
 
-
+# --------------------------------------------------------------------------- # 
+# Main
+# --------------------------------------------------------------------------- # 
 def run(argv):
+
+    global doStop, mqttRoot, mqttConnected
+
+    log.info("classic_mqtt is starting up...")
 
     handleArgs(argv)
 
 
-    global doStop, mqttRoot, mqttConnected
-
     #setup the MQTT Client for publishing and subscribing
-    client = mqttclient.Client(mqttUser+"_mqttclient") #create new instance
-    client.username_pw_set(mqttUser, password=mqttPassword)
-    client.on_connect = on_connect    
-    client.on_disconnect = on_disconnect   
-    client.connect(host=mqttHost,port=int(mqttPort)) #connect to broker islandmqtt.eastus.cloudapp.azure.com
+    mqtt_client = mqttclient.Client(mqttUser+"_mqttclient") 
+    mqtt_client.username_pw_set(mqttUser, password=mqttPassword)
+    mqtt_client.on_connect = on_connect    
+    mqtt_client.on_disconnect = on_disconnect   
+    mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
     
-    #setup command subscription
-    client.on_message = on_message 
-    client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
+    #Get command messages sent to this channel
+    mqtt_client.on_message = on_message 
+    mqtt_client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
 
+    #MQTT loop on the receives
+    mqtt_client.loop_start()
 
-    #loop on the receives
-    client.loop_start()
-
+    #Setup the Async stuff
     #define the stop for the function
     modbus_stop = threading.Event()
 
@@ -303,35 +339,43 @@ def run(argv):
     mqtt_stop = threading.Event()
 
     # start calling f now and every 60 sec thereafter
-    mqtt_publish_periodic(mqtt_stop, client)
+    mqtt_publish_periodic(mqtt_stop, mqtt_client)
 
     keepon = True
-    mqttDiscCount = 0
+    mqttErrorCount = 0
 
     while keepon:
-        time.sleep(5)
-        #check to see if shutdown received
-        if doStop:
-            log.debug("Stopping...")
-            keepon = False
-        
-        if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
-            log.error("MODBUS not connecting...")
-            keepon = False
-        
-        if not mqttConnected:
-            if (mqttDiscCount > MQTT_MAX_ERROR_COUNT):
-                log.error("MQTT Disconnected")
+        try:
+            time.sleep(MAIN_LOOP_SLEEP)
+            #check to see if shutdown received
+            if doStop:
+                log.debug("Stopping...")
                 keepon = False
-            else:
-                mqttDiscCount = mqttDiscCount + 1
-        else:
-            mqttDiscCount = 0
+            
+            if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
+                log.error("MODBUS not connecting...")
+                keepon = False
+            
+            if not mqttConnected:
+                if (mqttErrorCount > MQTT_MAX_ERROR_COUNT):
+                    log.error("MQTT Disconnected")
+                    keepon = False
+
+        except KeyboardInterrupt:
+            log.error('Interrupted')
+            print("Got Keyboard Interuption, stopping...")
+            doStop = True
     
-    modbus_stop.set()
+    log.debug("Stopping mqtt async...")
     mqtt_stop.set()
-    client.loop_stop()
+    mqtt_client.loop_stop()
+
+    log.debug("Stopping modbus async...")
+    modbus_stop.set()
+
+    log.info("Exiting classic_mqtt")
 
 
 if __name__ == '__main__':
     run(sys.argv[1:])
+
