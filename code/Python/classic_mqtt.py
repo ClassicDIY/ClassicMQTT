@@ -73,7 +73,7 @@ def getModbusData():
         #Test for succesful connect, if not, log error and mark modbusConnected = False
         modclient.connect()
     except:
-        modbusErrorCount = modbusErrorCount + 1
+        modbusErrorCount += 1
         e = sys.exc_info()[0]
         log.error("MODBUS Error H:{} P:{} e:{}".format(mqttHost, mqttPort, e))
         modbusDataGood = False
@@ -82,7 +82,7 @@ def getModbusData():
     #test by trying to read something
     result = modclient.read_holding_registers(4163, 2,  unit=10)
     if result.isError():
-        modbusErrorCount = modbusErrorCount + 1
+        modbusErrorCount += 1
         modbusDataGood = False
         # close the client
         log.error("MODBUS Connection Error H:{} P:{} count:{}".format(mqttHost, mqttPort, modbusErrorCount))
@@ -116,7 +116,7 @@ def getModbusData():
 # MQTT On Connect function
 # --------------------------------------------------------------------------- # 
 def on_connect(client, userdata, flags, rc):
-    global mqttConnected
+    global mqttConnected, mqttErrorCount
     if rc==0:
         mqttConnected = True
         mqttErrorCount = 0
@@ -140,7 +140,7 @@ def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
 
-        global wakeCount, infoPublished, snoozing, doStop, mqttConnected
+        global wakeCount, infoPublished, snoozing, doStop, mqttConnected, mqttErrorCount
 
         mqttConnected = True #got a message so we must be up again...
         mqttErrorCount = 0
@@ -165,21 +165,21 @@ def on_message(client, userdata, message):
 # MQTT Publish the data
 # --------------------------------------------------------------------------- # 
 def mqttPublish(client, data, subtopic):
-    global mqttRoot, mqttConnected
+    global mqttRoot, mqttConnected, mqttErrorCount
 
     topic = "{}/classic/stat/{}".format(mqttRoot, subtopic)
     log.debug(topic)
     
     if not mqttConnected:
         log.error("MQTT not connected, skipping publish")
-        mqttErrorCount = mqttErrorCount + 1
+        mqttErrorCount += 1
         
 
     try:
         client.publish(topic,data)
     except:
         mqttConnected = False
-        mqttErrorCount = mqttErrorCount + 1
+        mqttErrorCount += 1
         e = sys.exc_info()[0]
         log.error("MQTT Publish Error Topic:{} e:{}".format(topic, e))
 
@@ -187,7 +187,7 @@ def mqttPublish(client, data, subtopic):
 # Publish
 # --------------------------------------------------------------------------- # 
 def publish(client):
-    global infoPublished, classicModbusData, modbusDataGood
+    global infoPublished, classicModbusData, modbusDataGood, mqttErrorCount
 
     if not modbusDataGood:
         log.debug("No modbus data so skipping processing")
@@ -212,10 +212,10 @@ def publishReadingsAndInfo(client):
             publish(client)
             snoozeCount = 0
         else:
-            snoozeCount = snoozeCount + 1
+            snoozeCount += 1
     else:
         publish(client)
-        wakeCount = wakeCount + 1
+        wakeCount += 1
         if wakeCount >= WAKE_COUNT:
             snoozing = True
             wakeCount = 0
@@ -313,7 +313,6 @@ def run(argv):
 
     handleArgs(argv)
 
-
     #setup the MQTT Client for publishing and subscribing
     mqtt_client = mqttclient.Client(mqttUser+"_mqttclient") 
     mqtt_client.username_pw_set(mqttUser, password=mqttPassword)
@@ -321,49 +320,50 @@ def run(argv):
     mqtt_client.on_disconnect = on_disconnect   
     mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
     
-    #Get command messages sent to this channel
+    #Subscribe to the command messages sent to this channel
     mqtt_client.on_message = on_message 
     mqtt_client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
 
-    #MQTT loop on the receives
+    #MQTT loop so that messages can be received and reconnects can happen
     mqtt_client.loop_start()
 
     #Setup the Async stuff
     #define the stop for the function
     modbus_stop = threading.Event()
 
-    # start calling f now and every 60 sec thereafter
+    # start up the async method (which will call itself in the future
     modbus_periodic(modbus_stop)
 
     #define the stop for the function
     mqtt_stop = threading.Event()
 
-    # start calling f now and every 60 sec thereafter
+    # start up the async method (which will call itself in the future
     mqtt_publish_periodic(mqtt_stop, mqtt_client)
 
-    keepon = True
+    keepLooping = True
     mqttErrorCount = 0
 
-    while keepon:
+    log.debug("Starting main loop...")
+    while keepLooping:
         try:
             time.sleep(MAIN_LOOP_SLEEP)
             #check to see if shutdown received
             if doStop:
                 log.debug("Stopping...")
-                keepon = False
+                keepLooping = False
             
             if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
-                log.error("MODBUS not connecting...")
-                keepon = False
+                log.error("MODBUS not connected, exiting...")
+                keepLooping = False
             
             if not mqttConnected:
                 if (mqttErrorCount > MQTT_MAX_ERROR_COUNT):
-                    log.error("MQTT Disconnected")
-                    keepon = False
+                    log.error("MQTT Disconnected, exiting...")
+                    keepLooping = False
 
         except KeyboardInterrupt:
             log.error('Interrupted')
-            print("Got Keyboard Interuption, stopping...")
+            print("Got Keyboard Interuption, exiting...")
             doStop = True
     
     log.debug("Stopping mqtt async...")
