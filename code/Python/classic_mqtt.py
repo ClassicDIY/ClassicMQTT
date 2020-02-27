@@ -22,26 +22,30 @@ MODBUS_POLL_RATE          = 5                   #Get data from the Classic every
 MQTT_PUBLISH_RATE         = 5                   #Check to see if anything needs publishing every 5 seconds.
 MQTT_SNOOZE_COUNT         = 60                  #When no one is listening, publish every 5 minutes
 WAKE_COUNT                = 60                  #The number of times to publish after getting a "wake"
+MODBUS_MAX_ERROR_COUNT    = 300
+MQTT_MAX_ERROR_COUNT      = 300
 
 classicModbusData         = dict()
-snoozeCount               = 0
-snoozing                  = True
+
 wakeCount                 = 0
 infoPublished             = True
-doStop                    = False
-classicDataGood           = False
+snoozeCount               = 0
+snoozing                  = True
+
+modbusDataGood            = False
+modbusErrorCount          = 0
+
 mqttConnected             = False
 
+doStop                    = False
 
 classicHost               = "ClassicHost"
-classicPort               = "502" #15284
+classicPort               = "502"
 mqttHost                  = "127.0.0.1"
 mqttPort                  = 1883
 mqttRoot                  = "ClassicMQTT"
 mqttUser                  = "username"
 mqttPassword              = "password"
-
-
 
 
 # --------------------------------------------------------------------------- # 
@@ -60,20 +64,29 @@ log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
 # --------------------------------------------------------------------------- # 
 def getModbusData():
 
-    global classicDataGood
+    global modbusDataGood, modbusErrorCount
 
-    modclient = ModbusClient(classicHost, port=classicPort)
-    #Test for succesful connect, if not, log error and mark modbusConnected = False
-    modclient.connect()
-    
+    try:
+        modclient = ModbusClient(classicHost, port=classicPort)
+        #Test for succesful connect, if not, log error and mark modbusConnected = False
+        modclient.connect()
+    except:
+        modbusErrorCount = modbusErrorCount + 1
+        e = sys.exc_info()[0]
+        log.error("MODBUS Error H:{} P:{} e:{}".format(mqttHost, mqttPort, e))
+        modbusDataGood = False
+        return dict()
+
     #test by trying to read something
     result = modclient.read_holding_registers(4163, 2,  unit=10)
     if result.isError():
-        log.error("MDBUS Connection Error H:{} P:{}".format(mqttHost, mqttPort))
-        classicDataGood = False
+        modbusErrorCount = modbusErrorCount + 1
+        modbusDataGood = False
+        # close the client
+        log.error("MODBUS Connection Error H:{} P:{} count:{}".format(mqttHost, mqttPort, modbusErrorCount))
+        modclient.close()
         return dict()
 
-    classicDataGood = True
     theData = dict()
 
     #Read in all the registers at one time
@@ -86,6 +99,9 @@ def getModbusData():
 
     # close the client
     modclient.close()
+
+    modbusErrorCount = 0
+    modbusDataGood = True
 
     #Iterate over them and get the decoded data all into one dict
     decoded = dict()
@@ -106,6 +122,7 @@ def on_connect(client, userdata, flags, rc):
 def on_disconnect(client, userdata, rc):
     global mqttConnected
     mqttConnected = False
+    log.debug("on_disconnect: Disconnected")
 
 def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
@@ -114,31 +131,27 @@ def on_message(client, userdata, message):
         global wakeCount, infoPublished, snoozing, doStop, mqttConnected
 
         mqttConnected = True #got a message so we must be up again...
-        log.debug(message.payload)
         msg = message.payload.decode(encoding='UTF-8')
         msg = msg.upper()
 
-        log.debug(msg)
+        log.debug("Recived MQTT message {}".format(msg))
 
-        if msg == "{\"WAKE\"}":
-            wakeCount = 0
-            infoPublished = False
-            snoozing = False
-        elif msg == "{\"INFO\"}":
+        #if we get a WAKE or INFO, reset the counters and re-pulish the INFO.
+        if msg in ("{\"WAKE\"}", "{\"INFO\"}"):
             wakeCount = 0
             infoPublished = False
             snoozing = False
         elif msg == "STOP":
             doStop = True
         else:
-            print("Received something else")
+            log.debug("on_message: Received something else")
             
 
 # --------------------------------------------------------------------------- # 
 # Read from the address and return a decoder
 # --------------------------------------------------------------------------- # 
 def mqttPublish(client, data, subtopic):
-    global mqttRoot
+    global mqttRoot, mqttConnected
 
     topic = "{}/classic/stat/{}".format(mqttRoot, subtopic)
     log.debug(topic)
@@ -146,16 +159,20 @@ def mqttPublish(client, data, subtopic):
     if not mqttConnected:
         log.error("MQTT not connected, skipping publish")
 
-    client.publish(topic,data)
+    try:
+        client.publish(topic,data)
+    except:
+        mqttConnected = False
+        e = sys.exc_info()[0]
+        log.error("MQTT Publish Error Topic:{} e:{}".format(topic, e))
 
 def publish(client):
-    global infoPublished, classicModbusData, classicDataGood
+    global infoPublished, classicModbusData, modbusDataGood
 
-    if not classicDataGood:
+    if not modbusDataGood:
         log.debug("No modbus data so skipping processing")
         return 
 
-    #print(encodeClassicData_info(classicModbusData))
     if (not infoPublished):
         #Check if the Info has been published yet
         mqttPublish(client,encodeClassicData_info(classicModbusData),"info")
@@ -297,8 +314,13 @@ def run(argv):
         if doStop:
             log.debug("Stopping...")
             keepon = False
-        elif not mqttConnected:
-            if (mqttDiscCount > 300):
+        
+        if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
+            log.error("MODBUS not connecting...")
+            keepon = False
+        
+        if not mqttConnected:
+            if (mqttDiscCount > MQTT_MAX_ERROR_COUNT):
                 log.error("MQTT Disconnected")
                 keepon = False
             else:

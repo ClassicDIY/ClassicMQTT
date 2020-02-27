@@ -1,8 +1,13 @@
 #!/usr/bin/env python
 
 import json
+import logging
+
+log = logging.getLogger('classic_mqtt')
+
 
 def encodeClassicData_readings(decoded):
+    #log.debug("Enter encodeClassicData_readings")
 
     classicData = {}
 
@@ -66,7 +71,9 @@ def encodeClassicData_readings(decoded):
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))
 
 def encodeClassicData_info(decoded):
-    
+
+    #log.debug("Enter encodeClassicData_info")
+
     classicData = {}
     # "appVersion":"",
     classicData["appVersion"] = decoded["app_rev"]

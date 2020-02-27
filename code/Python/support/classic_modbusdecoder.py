@@ -5,15 +5,24 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.compat import iteritems
 from collections import OrderedDict
+import logging
+
+
+log = logging.getLogger('classic_mqtt')
 
 # --------------------------------------------------------------------------- # 
 # Read from the address and return a decoder
 # --------------------------------------------------------------------------- # 
 def getRegisters(theClient, addr, count):
-    result = theClient.read_holding_registers(addr, count,  unit=10)
-    if result.function_code >= 0x80:
-        print("error getting {} for {} bytes".format(addr, count))
+    try:
+        result = theClient.read_holding_registers(addr, count,  unit=10)
+        if result.function_code >= 0x80:
+            log.error("error getting {} for {} bytes".format(addr, count))
+            return dict()
+    except:
+        log.error("Error getting {} for {} bytes".format(addr, count))
         return dict()
+
 
     return result.registers
 
