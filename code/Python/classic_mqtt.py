@@ -7,6 +7,7 @@ import json
 import time
 import threading
 import logging
+import os
 import sys, getopt
 
 from support.classic_modbusdecoder import getRegisters, getDataDecoder, doDecode
@@ -45,11 +46,19 @@ mqttPassword              = "password"
 # --------------------------------------------------------------------------- # 
 # configure the client logging
 # --------------------------------------------------------------------------- # 
-FORMAT = ('%(asctime)-15s %(threadName)-15s'
-          ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
-logging.basicConfig(format=FORMAT)
+#FORMAT = ('%(asctime)-15s %(threadName)-15s'
+#          ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
+#logging.basicConfig(format=logging.BASIC_FORMAT)
+#log = logging.getLogger()
+#log.setLevel(logging.INFO)
+
+handler = logging.handlers.WatchedFileHandler(
+    os.environ.get("LOGFILE", "./classic_mqtt.log"))
+formatter = logging.Formatter(logging.BASIC_FORMAT)
+handler.setFormatter(formatter)
 log = logging.getLogger()
-log.setLevel(logging.INFO)
+log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
+log.addHandler(handler)
 
 # --------------------------------------------------------------------------- # 
 # Run the main payload decoder
@@ -107,11 +116,9 @@ def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
 
-        global wakeCount
-        global infoPublished
-        global snoozing
-        global doStop
+        global wakeCount, infoPublished, snoozing, doStop, mqttConnected
 
+        mqttConnected = True #got a message so we must be up again...
         log.debug(message.payload)
         msg = message.payload.decode(encoding='UTF-8')
         msg = msg.upper()
