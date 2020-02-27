@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env/python
 
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from paho.mqtt import client as mqttclient
@@ -7,6 +7,7 @@ import json
 import time
 import threading
 import logging
+import logging.handlers
 import os
 import sys, getopt
 
@@ -46,19 +47,13 @@ mqttPassword              = "password"
 # --------------------------------------------------------------------------- # 
 # configure the client logging
 # --------------------------------------------------------------------------- # 
-#FORMAT = ('%(asctime)-15s %(threadName)-15s'
-#          ' %(levelname)-8s %(module)-15s:%(lineno)-8s %(message)s')
-#logging.basicConfig(format=logging.BASIC_FORMAT)
-#log = logging.getLogger()
-#log.setLevel(logging.INFO)
-
-handler = logging.handlers.WatchedFileHandler(
-    os.environ.get("LOGFILE", "./classic_mqtt.log"))
+log = logging.getLogger('classic_mqtt')
+#handler = logging.FileHandler('./classic_mqtt.log')
+handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"))
 formatter = logging.Formatter(logging.BASIC_FORMAT)
 handler.setFormatter(formatter)
-log = logging.getLogger()
+log.addHandler(handler) 
 log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
-log.addHandler(handler)
 
 # --------------------------------------------------------------------------- # 
 # Run the main payload decoder
