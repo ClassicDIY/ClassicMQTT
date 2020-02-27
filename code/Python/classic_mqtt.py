@@ -9,8 +9,8 @@ import threading
 import logging
 import sys, getopt
 
-from classic_modbusdecoder import getRegisters, getDataDecoder, doDecode
-from classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
+from support.classic_modbusdecoder import getRegisters, getDataDecoder, doDecode
+from support.classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
 
 
 # --------------------------------------------------------------------------- # 
