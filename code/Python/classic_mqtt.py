@@ -151,7 +151,7 @@ def on_message(client, userdata, message):
         log.debug("Recived MQTT message {}".format(msg))
 
         #if we get a WAKE or INFO, reset the counters and re-pulish the INFO.
-        if msg in ("{\"WAKE\"}", "{\"INFO\"}"):
+        if msg == "{\"WAKE\"}" or msg == "{\"INFO\"}":
             wakeCount = 0
             infoPublished = False
             snoozing = False
