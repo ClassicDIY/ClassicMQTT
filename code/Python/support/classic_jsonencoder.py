@@ -2,6 +2,7 @@
 
 import json
 import logging
+import datetime
 
 log = logging.getLogger('classic_mqtt')
 
@@ -81,8 +82,9 @@ def encodeClassicData_info(decoded):
     uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"]]
     # "deviceName":"CLASSIC",
     classicData["deviceName"] = "".join(chr(x) for x in uint_array)
-    # "buildDate":"20180206",
-    classicData["buildDate"] = "{}{:02d}{:02d}".format(decoded["Year"],decoded["Month"],decoded["Day"])
+    # "buildDate":"Tuesday, February 6, 2018",
+    bdate = datetime.date(decoded["Year"],decoded["Month"],decoded["Day"])
+    classicData["buildDate"] = bdate.strftime("%A, %B %d, %Y").replace(' 0', ' ') # get rid of the stupid leading 0 in date.
     # "deviceType":"Classic",
     classicData["deviceType"] = "Classic"
     # "endingAmps":13.01,
