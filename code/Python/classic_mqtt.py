@@ -50,7 +50,7 @@ mqttPassword              = "password"
 log = logging.getLogger('classic_mqtt')
 #handler = logging.FileHandler('./classic_mqtt.log')
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"))
-formatter = logging.Formatter(logging.BASIC_FORMAT)
+formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 handler.setFormatter(formatter)
 log.addHandler(handler) 
 log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
@@ -82,7 +82,7 @@ def getModbusData():
     theData[4163] = getRegisters(theClient=modclient,addr=4163,count=2)
     theData[4209] = getRegisters(theClient=modclient,addr=4209,count=4)
     theData[4243] = getRegisters(theClient=modclient,addr=4243,count=32)
-    #theData[16384]= getRegisters(theClient=modclient,addr=16384,count=12)
+    theData[16386]= getRegisters(theClient=modclient,addr=16386,count=4)
 
     # close the client
     modclient.close()

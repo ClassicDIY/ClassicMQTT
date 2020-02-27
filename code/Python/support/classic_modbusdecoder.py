@@ -114,9 +114,8 @@ def doDecode(addr, decoder):
             ('skip', decoder.skip_bytes(56)),                                #4247-4274
             ('ReasonForResting', decoder.decode_16bit_uint()),               #4275
         ])
-    elif (addr == 16384):
+    elif (addr == 16386):
         decoded = OrderedDict([
-            ('ignore', decoder.skip_bytes(4)),                            #16385, 16386
             ('app_rev', decoder.decode_32bit_uint()),                     #16387, 16388
             ('net_rev', decoder.decode_32bit_uint()),                     #16387, 16388
         ])

@@ -69,7 +69,7 @@ def encodeClassicData_info(decoded):
     
     classicData = {}
     # "appVersion":"",
-    classicData["appVersion"] = ""
+    classicData["appVersion"] = decoded["app_rev"]
     #Assemble the string
     uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"]]
     # "deviceName":"CLASSIC",
@@ -90,7 +90,7 @@ def encodeClassicData_info(decoded):
     # "mpptMode":11,
     classicData["mpptMode"] = decoded["MPPTMode"]
     # "netVersion":"",
-    classicData["netVersion"] = ""
+    classicData["netVersion"] = decoded["net_rev"]
     # "nominalBatteryVoltage":24,
     classicData["nominalBatteryVoltage"] = decoded["nominalBatteryVoltage"]
     # "unitID":-791134691
