@@ -56,7 +56,7 @@ mqttPassword              = "password"
 log = logging.getLogger('classic_mqtt')
 #handler = logging.FileHandler('./classic_mqtt.log')
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"))
-formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 handler.setFormatter(formatter)
 log.addHandler(handler) 
 log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
