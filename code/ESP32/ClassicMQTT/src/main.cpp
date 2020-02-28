@@ -58,8 +58,8 @@ ModbusRegisterBank _registers[] = {
 	{false, 4360, 22},
 	{false, 4163, 2},
 	{false, 4209, 4},
-	{false, 4243, 32},
-	{false, 16386, 8}
+	{false, 4243, 32}
+	//{ false, 16386, 8 }
 };
 
 void publish(const char *subtopic, const char *value, boolean retained = false)
@@ -76,8 +76,7 @@ void publish(const char *subtopic, const char *value, boolean retained = false)
 void publishReadings()
 {
 	StaticJsonDocument<1024> root;
-	//if ((boilerPlateReadBitField & 0x0f) == 0x0f && boilerPlateInfoPublished == false)
-	if ((boilerPlateReadBitField & 0x1f) == 0x1f && boilerPlateInfoPublished == false)
+	if ((boilerPlateReadBitField & 0x0f) == 0x0f && boilerPlateInfoPublished == false)
 	{
 		boilerPlateInfoPublished = true;
 
@@ -362,8 +361,15 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		if ((boilerPlateReadBitField & 0x10) == 0)
 		{
 			boilerPlateReadBitField |= 0x10;
-			_chargeControllerInfo.appVersion = Getuint32Value(0, data);
-			_chargeControllerInfo.netVersion = Getuint32Value(4, data);
+			short reg16387 = Getuint16Value(0, data);
+			short reg16388 = Getuint16Value(1, data);
+			short reg16389 = Getuint16Value(2, data);
+			short reg16390 = Getuint16Value(3, data);
+			char unit[16];
+			snprintf_P(unit, sizeof(unit), "%d", (reg16388 << 16) + reg16387);
+			_chargeControllerInfo.appVersion = unit;
+			snprintf_P(unit, sizeof(unit), "%d", (reg16390 << 16) + reg16389);
+			_chargeControllerInfo.netVersion = unit;
 		}
 	}
 }
