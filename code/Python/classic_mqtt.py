@@ -121,6 +121,9 @@ def on_connect(client, userdata, flags, rc):
         mqttConnected = True
         mqttErrorCount = 0
         log.debug("MQTT connected OK Returned code={}".format(rc))
+        #subscribe to the commands
+        client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
+
     else:
         mqttConnected = False
         log.error("MQTT Bad connection Returned code={}".format(rc))
@@ -322,7 +325,7 @@ def run(argv):
     
     #Subscribe to the command messages sent to this channel
     mqtt_client.on_message = on_message 
-    mqtt_client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
+    #mqtt_client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
 
     #MQTT loop so that messages can be received and reconnects can happen
     mqtt_client.loop_start()
