@@ -102,6 +102,8 @@ def getModbusData():
     # close the client
     modclient.close()
 
+    log.debug("Got data from Classic at {}:{}".format(mqttHost,mqttPort))
+
     modbusErrorCount = 0
     modbusDataGood = True
 
