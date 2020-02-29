@@ -70,7 +70,7 @@ def on_connect(client, userdata, flags, rc):
             client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
         except:
             e = sys.exc_info()[0]
-            log.debug("MQTT Subscribe failed e:{}".format(e))
+            log.error("MQTT Subscribe failed e:{}".format(e))
 
         mqttConnected = True
         mqttErrorCount = 0
@@ -261,6 +261,7 @@ def run(argv):
     mqtt_client.on_connect = on_connect    
     mqtt_client.on_disconnect = on_disconnect   
     mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
+    mqtt_client.loop_start()
     
     #Setup the Async stuff
     #define the stop for the function
