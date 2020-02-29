@@ -182,9 +182,9 @@ def periodic(periodic_stop, client):
                 else:
                     log.error("MODBUS data not good, skipping publish")
                     modbusErrorCount += 1
-        except:
-            e = sys.exc_info()[0]
-            log.error("Caught Error in periodic e:{}".format(classicHost, classicPort, e))
+        except Exception as e:
+            log.error("Caught Error in periodic")
+            log.exception(e, exc_info=True)
 
 
         # set myself to be called again in correct number of seconds
