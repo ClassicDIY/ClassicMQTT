@@ -135,7 +135,7 @@ def doDecode(addr, decoder):
 # --------------------------------------------------------------------------- # 
 # Run the main payload decoder
 # --------------------------------------------------------------------------- # 
-def getModbusData():
+def getModbusData(classicHost, classicPort):
 
     try:
         modclient = ModbusClient(classicHost, port=classicPort)
@@ -145,7 +145,7 @@ def getModbusData():
         result = modclient.read_holding_registers(4163, 2,  unit=10)
         if result.isError():
             # close the client
-            log.error("MODBUS isError H:{} P:{} count:{}".format(classicHost, classicPort, modbusErrorCount))
+            log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
             modclient.close()
             return {}
 

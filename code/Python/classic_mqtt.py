@@ -166,7 +166,7 @@ def periodic(periodic_stop, client):
             if timeToPublish() and mqttConnected:
                 data = {}
                 #Get the Modbus Data and store it.
-                data = getModbusData()
+                data = getModbusData(classicHost, classicPort)
                 if data: # got data
                     modbusErrorCount = 0
 
