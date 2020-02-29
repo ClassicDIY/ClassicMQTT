@@ -168,7 +168,7 @@ def getModbusData(classicHost, classicPort):
             log.error("MODBUS Error on close H:{} P:{} e:{}".format(classicHost, classicPort, e))
         return {}
 
-    log.debug("Got data from Classic at {}:{}".format(mqttHost,mqttPort))
+    log.debug("Got data from Classic at {}:{}".format(classicHost,classicPort))
 
     #Iterate over them and get the decoded data all into one dict
     decoded = {}
