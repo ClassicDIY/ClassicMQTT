@@ -6,6 +6,7 @@ from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from pymodbus.compat import iteritems
 from collections import OrderedDict
 import logging
+import sys
 
 
 log = logging.getLogger('classic_mqtt')
@@ -131,4 +132,48 @@ def doDecode(addr, decoder):
 
     return decoded
 
+# --------------------------------------------------------------------------- # 
+# Run the main payload decoder
+# --------------------------------------------------------------------------- # 
+def getModbusData():
+
+    try:
+        modclient = ModbusClient(classicHost, port=classicPort)
+        #Test for succesful connect, if not, log error and mark modbusConnected = False
+        modclient.connect()
+
+        result = modclient.read_holding_registers(4163, 2,  unit=10)
+        if result.isError():
+            # close the client
+            log.error("MODBUS isError H:{} P:{} count:{}".format(classicHost, classicPort, modbusErrorCount))
+            modclient.close()
+            return dict()
+
+        theData = dict()
+        #Read in all the registers at one time
+        theData[4100] = getRegisters(theClient=modclient,addr=4100,count=44)
+        theData[4360] = getRegisters(theClient=modclient,addr=4360,count=22)
+        theData[4163] = getRegisters(theClient=modclient,addr=4163,count=2)
+        theData[4209] = getRegisters(theClient=modclient,addr=4209,count=4)
+        theData[4243] = getRegisters(theClient=modclient,addr=4243,count=32)
+        theData[16386]= getRegisters(theClient=modclient,addr=16386,count=4)
+        modclient.close()
+
+    except: # Catch all modbus excpetions
+        e = sys.exc_info()[0]
+        log.error("MODBUS Error H:{} P:{} e:{}".format(classicHost, classicPort, e))
+        try:
+            modclient.close()
+        except:
+            log.error("MODBUS Error on close H:{} P:{} e:{}".format(classicHost, classicPort, e))
+        return dict()
+
+    log.debug("Got data from Classic at {}:{}".format(mqttHost,mqttPort))
+
+    #Iterate over them and get the decoded data all into one dict
+    decoded = dict()
+    for index in theData:
+        decoded = {**dict(decoded), **dict(doDecode(index, getDataDecoder(theData[index])))}
+
+    return decoded
 
