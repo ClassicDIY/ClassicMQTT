@@ -164,7 +164,7 @@ def periodic(periodic_stop, client):
     if not periodic_stop.is_set():
         try:
             if timeToPublish() and mqttConnected:
-                data = dict()
+                data = {}
                 #Get the Modbus Data and store it.
                 data = getModbusData()
                 if data: # got data

@@ -19,10 +19,10 @@ def getRegisters(theClient, addr, count):
         result = theClient.read_holding_registers(addr, count,  unit=10)
         if result.function_code >= 0x80:
             log.error("error getting {} for {} bytes".format(addr, count))
-            return dict()
+            return {}
     except:
         log.error("Error getting {} for {} bytes".format(addr, count))
-        return dict()
+        return {}
 
 
     return result.registers
@@ -147,9 +147,9 @@ def getModbusData():
             # close the client
             log.error("MODBUS isError H:{} P:{} count:{}".format(classicHost, classicPort, modbusErrorCount))
             modclient.close()
-            return dict()
+            return {}
 
-        theData = dict()
+        theData = {}
         #Read in all the registers at one time
         theData[4100] = getRegisters(theClient=modclient,addr=4100,count=44)
         theData[4360] = getRegisters(theClient=modclient,addr=4360,count=22)
@@ -166,12 +166,12 @@ def getModbusData():
             modclient.close()
         except:
             log.error("MODBUS Error on close H:{} P:{} e:{}".format(classicHost, classicPort, e))
-        return dict()
+        return {}
 
     log.debug("Got data from Classic at {}:{}".format(mqttHost,mqttPort))
 
     #Iterate over them and get the decoded data all into one dict
-    decoded = dict()
+    decoded = {}
     for index in theData:
         decoded = {**dict(decoded), **dict(doDecode(index, getDataDecoder(theData[index])))}
 
