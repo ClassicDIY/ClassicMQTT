@@ -67,7 +67,9 @@ def on_connect(client, userdata, flags, rc):
         log.debug("MQTT connected OK Returned code={}".format(rc))
         #subscribe to the commands
         try:
-            client.subscribe("{}/classic/cmnd/#".format(mqttRoot))
+            topic = "{}/classic/cmnd/#".format(mqttRoot)
+            client.subscribe(topic)
+            log.debug("Subscribed to {}".format(topic))
         except:
             e = sys.exc_info()[0]
             log.error("MQTT Subscribe failed e:{}".format(e))
@@ -112,7 +114,7 @@ def on_message(client, userdata, message):
         elif msg == "{\"STOP\"}":
             doStop = True
         else:
-            log.debug("on_message: Received something else")
+            log.error("on_message: Received something else")
             
 
 # --------------------------------------------------------------------------- # 
@@ -255,14 +257,16 @@ def run(argv):
 
     handleArgs(argv)
 
+    mqttErrorCount = 0
     #setup the MQTT Client for publishing and subscribing
     mqtt_client = mqttclient.Client(mqttUser+"_mqttclient") 
     mqtt_client.username_pw_set(mqttUser, password=mqttPassword)
     mqtt_client.on_connect = on_connect    
     mqtt_client.on_disconnect = on_disconnect   
     mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
-    mqtt_client.loop_start()
     
+    mqtt_client.loop_start()
+
     #Setup the Async stuff
     #define the stop for the function
     periodic_stop = threading.Event()
@@ -271,7 +275,6 @@ def run(argv):
     periodic(periodic_stop, mqtt_client)
 
     keepLooping = True
-    mqttErrorCount = 0
 
     log.debug("Starting main loop...")
     while keepLooping:
