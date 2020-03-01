@@ -7,7 +7,7 @@ import json
 import time
 import threading
 import logging
-from logging.handlers import handlers, RotatingFileHandler
+from logging.handlers import RotatingFileHandler
 import os
 import sys, getopt
 
