@@ -24,7 +24,6 @@ def getRegisters(theClient, addr, count):
         log.error("Error getting {} for {} bytes".format(addr, count))
         return {}
 
-
     return result.registers
 
 
@@ -165,7 +164,8 @@ def getModbusData(classicHost, classicPort):
         try:
             modclient.close()
         except:
-            log.error("MODBUS Error on close H:{} P:{} e:{}".format(classicHost, classicPort, e))
+            log.error("MODBUS Error on close H:{} P:{}".format(classicHost, classicPort))
+
         return {}
 
     log.debug("Got data from Classic at {}:{}".format(classicHost,classicPort))
@@ -176,4 +176,3 @@ def getModbusData(classicHost, classicPort):
         decoded = {**dict(decoded), **dict(doDecode(index, getDataDecoder(theData[index])))}
 
     return decoded
-

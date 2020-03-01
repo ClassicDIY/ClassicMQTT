@@ -22,8 +22,8 @@ MODBUS_POLL_RATE          = 5                   #Get data from the Classic every
 MQTT_PUBLISH_RATE         = 5                   #Check to see if anything needs publishing every 5 seconds.
 MQTT_SNOOZE_COUNT         = 60                  #When no one is listening, publish every 5 minutes
 WAKE_COUNT                = 60                  #The number of times to publish after getting a "wake"
-MODBUS_MAX_ERROR_COUNT    = 300
-MQTT_MAX_ERROR_COUNT      = 300
+MODBUS_MAX_ERROR_COUNT    = 300                 #Number of errors on the MODBUS before the tool exits
+MQTT_MAX_ERROR_COUNT      = 300                 #Number of errors on the MQTT before the tool exits
 MAIN_LOOP_SLEEP           = 5                   #Seconds to sleep in the main loop
 
 wakeCount                 = 0
@@ -37,14 +37,16 @@ mqttErrorCount            = 0
 
 doStop                    = False
 
-classicHost               = "ClassicHost"
-classicPort               = "502"
-mqttHost                  = "127.0.0.1"
-mqttPort                  = 1883
-mqttRoot                  = "ClassicMQTT"
-mqttUser                  = "username"
-mqttPassword              = "password"
-
+# --------------------------------------------------------------------------- # 
+# Default startup values. Can be over-ridden by command line options.
+# --------------------------------------------------------------------------- # 
+classicHost               = "ClassicHost"       #Default Classic
+classicPort               = "502"               #Default MODBUS port
+mqttHost                  = "127.0.0.1"         #Defult MQTT host
+mqttPort                  = 1883                #Default MQTT port
+mqttRoot                  = "ClassicMQTT"       #Dfault Root to publish on
+mqttUser                  = "username"          #Default user
+mqttPassword              = "password"          #Default password
 
 # --------------------------------------------------------------------------- # 
 # configure the logging
@@ -70,9 +72,9 @@ def on_connect(client, userdata, flags, rc):
             topic = "{}/classic/cmnd/#".format(mqttRoot)
             client.subscribe(topic)
             log.debug("Subscribed to {}".format(topic))
-        except:
-            e = sys.exc_info()[0]
-            log.error("MQTT Subscribe failed e:{}".format(e))
+        except Exception as e:
+            log.error("MQTT Subscribe failed")
+            log.exception(e, exc_info=True)
 
         mqttConnected = True
         mqttErrorCount = 0
@@ -101,12 +103,10 @@ def on_message(client, userdata, message):
         mqttConnected = True #got a message so we must be up again...
         mqttErrorCount = 0
 
-        msg = message.payload.decode(encoding='UTF-8')
-        msg = msg.upper()
+        msg = message.payload.decode(encoding='UTF-8').upper()
+        log.debug("Received MQTT message {}".format(msg))
 
-        log.debug("Recived MQTT message {}".format(msg))
-
-        #if we get a WAKE or INFO, reset the counters and re-pulish the INFO.
+        #if we get a WAKE or INFO, reset the counters, re-puplish the INFO and stop snoozing.
         if msg == "{\"WAKE\"}" or msg == "{\"INFO\"}":
             wakeCount = 0
             infoPublished = False
@@ -129,15 +129,15 @@ def mqttPublish(client, data, subtopic):
     try:
         client.publish(topic,data)
         return True
-    except:
+    except Exception as e:
+        log.error("MQTT Publish Error Topic:{}".format(topic))
+        log.exception(e, exc_info=True)
         mqttConnected = False
-        e = sys.exc_info()[0]
-        log.error("MQTT Publish Error Topic:{} e:{}".format(topic, e))
         return False
 
 
 # --------------------------------------------------------------------------- # 
-# Test the snoozing etc to see if it is time to publish
+# Test to see if it is time to gather data and publish
 # --------------------------------------------------------------------------- # 
 def timeToPublish():
     global snoozing, snoozeCount, wakeCount, infoPublished
@@ -186,65 +186,47 @@ def periodic(periodic_stop, client):
             log.error("Caught Error in periodic")
             log.exception(e, exc_info=True)
 
-
         # set myself to be called again in correct number of seconds
         threading.Timer(MODBUS_POLL_RATE, periodic, [periodic_stop, client]).start()
-
 
 # --------------------------------------------------------------------------- # 
 # Handle the command line arguments
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv):
     
-    global classicHost, classicPort,mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
-
-    classic = classicHost
-    classic_port = classicPort
-    mqtt = mqttHost
-    mqtt_port = mqttPort
-    mqtt_root = mqttRoot
-    username = mqttUser
-    password = mqttPassword
+    global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
 
     try:
       opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","user=","pass="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classic, classic_port, mqtt, mqtt_port, mqtt_root))
+        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classic, classic_port, mqtt, mqtt_port, mqtt_root))
+            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
             sys.exit()
         elif opt in ('--classic'):
-            classic = arg
+            classicHost = arg
         elif opt in ('--classic_port'):
-            classic_port = arg
+            classicPort = arg
         elif opt in ("--mqtt"):
-            mqtt = arg
+            mqttHost = arg
         elif opt in ("--mqtt_port"):
-            mqtt_port = arg
+            mqttPort = arg
         elif opt in ("--mqtt_root"):
-            mqtt_root = arg
+            mqttRoot = arg
         elif opt in ("--user"):
-            username = arg
+            mqttUser = arg
         elif opt in ("--pass"):
-            password = arg
+            mqttPassword = arg
 
-    log.debug("classic is {}".format(classic))
-    log.debug("classic_port is {}".format(classic_port))
-    log.debug("mqtt is {}".format(mqtt))
-    log.debug("mqtt_port is {}".format(mqtt_port))
-    log.debug("mqtt_root is {}".format(mqtt_root))
-    log.debug("username is {}".format(username))
-    log.debug("password is {}".format(password))
-
-    classicHost = classic
-    classicPort = classic_port
-    mqttHost = mqtt
-    mqttPort = mqtt_port
-    mqttRoot = mqtt_root
-    mqttUser = username
-    mqttPassword = password
+    log.info("classicHost = {}".format(classicHost))
+    log.info("classicPort = {}".format(classicPort))
+    log.info("mqttHost = {}".format(mqttHost))
+    log.info("mqttPort = {}".format(mqttPort))
+    log.info("mqttRoot = {}".format(mqttRoot))
+    log.info("mqttUser = {}".format(mqttUser))
+    log.info("mqttPassword = {}".format(mqttPassword))
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -253,7 +235,7 @@ def run(argv):
 
     global doStop, mqttRoot, mqttConnected
 
-    log.info("classic_mqtt is starting up...")
+    log.info("classic_mqtt starting up...")
 
     handleArgs(argv)
 
@@ -283,7 +265,7 @@ def run(argv):
             time.sleep(MAIN_LOOP_SLEEP)
             #check to see if shutdown received
             if doStop:
-                log.debug("Stopping...")
+                log.info("Stopping...")
                 keepLooping = False
             
             if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
@@ -296,19 +278,19 @@ def run(argv):
                     keepLooping = False
 
         except KeyboardInterrupt:
-            log.error('Interrupted')
-            print("Got Keyboard Interuption, exiting...")
+            log.error("Got Keyboard Interuption, exiting...")
             doStop = True
+        except Exception as e:
+            log.error("Caught other exception...")
+            log.exception(e, exc_info=True)
     
-    log.debug("Stopping periodic async...")
+    log.info("Stopping periodic async...")
     periodic_stop.set()
 
-    log.debug("Stopping MQTT loop...")
+    log.info("Stopping MQTT loop...")
     mqtt_client.loop_stop()
 
     log.info("Exiting classic_mqtt")
 
-
 if __name__ == '__main__':
     run(sys.argv[1:])
-
