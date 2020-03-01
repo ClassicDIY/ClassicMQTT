@@ -1,4 +1,4 @@
-#!/usr/bin/env/python
+#!/usr/bin/python3
 
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from paho.mqtt import client as mqttclient
@@ -7,7 +7,7 @@ import json
 import time
 import threading
 import logging
-from logging.handlers import formatter, handlers, RotatingFileHandler
+from logging.handlers import handlers, RotatingFileHandler
 import os
 import sys, getopt
 
