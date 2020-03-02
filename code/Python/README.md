@@ -18,6 +18,7 @@ running on the local network with the Classic and has an MQTT service installed 
 and posted onto the MQTT service.
 <p>
 It requires Python 3 and these packages be installed on the system to operate correctly:
+
 + Pymodbus
 + paho-mqtt
 <p>
