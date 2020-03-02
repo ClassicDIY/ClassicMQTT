@@ -23,8 +23,7 @@ It requires Python 3 and these packages be installed on the system to operate co
 + paho-mqtt
 <p>
 The following are the parameters that can be passed to the script
-<p>
+
 ```
 classic_mqtt.py --classic <ClassicHost> --classic_port <502> --mqtt <127.0.0.1> --mqtt_port <1883> --mqtt_root <ClassicMQTT> --user <username> --pass <password>
 ```
------------------
