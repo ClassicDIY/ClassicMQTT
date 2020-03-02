@@ -52,7 +52,6 @@ mqttPassword              = "password"          #Default password
 # configure the logging
 # --------------------------------------------------------------------------- # 
 log = logging.getLogger('classic_mqtt')
-#handler = logging.FileHandler('./classic_mqtt.log')
 handler = RotatingFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"), maxBytes=5*1024*1024, backupCount=5)
 formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 handler.setFormatter(formatter)

@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+# --------------------------------------------------------------------------- # 
+# Handle creating the Json packaging of the Modbus data.
+# 
+# --------------------------------------------------------------------------- # 
+
+
 import json
 import logging
 import datetime
@@ -7,8 +13,11 @@ import datetime
 log = logging.getLogger('classic_mqtt')
 
 
+# --------------------------------------------------------------------------- # 
+# Handle creating the Json for Readings
+# --------------------------------------------------------------------------- # 
 def encodeClassicData_readings(decoded):
-    #log.debug("Enter encodeClassicData_readings")
+    log.debug("Enter encodeClassicData_readings")
 
     classicData = {}
 
@@ -71,10 +80,12 @@ def encodeClassicData_readings(decoded):
 
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))
 
+# --------------------------------------------------------------------------- # 
+# Handle creating the Json for Info
+# --------------------------------------------------------------------------- # 
 def encodeClassicData_info(decoded):
 
-    #log.debug("Enter encodeClassicData_info")
-
+    log.debug("Enter encodeClassicData_info")
     classicData = {}
     # "appVersion":"",
     classicData["appVersion"] = decoded["app_rev"]
@@ -106,9 +117,6 @@ def encodeClassicData_info(decoded):
     classicData["unitID"] = decoded["unitID"]
 
     mac = "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}".format(decoded["mac_5"],decoded["mac_4"],decoded["mac_3"],decoded["mac_2"],decoded["mac_1"],decoded["mac_0"])
-    classicData["mac"] = mac.upper()
-    #print(mac.upper())
-
-    #print ("app_rev:{} net_rev:{}".format(decoded["app_rev]"], decoded["net_rev"]))
+    classicData["macAddress"] = mac.upper()
 
     return json.dumps(classicData, sort_keys=False, separators=(',', ':'))

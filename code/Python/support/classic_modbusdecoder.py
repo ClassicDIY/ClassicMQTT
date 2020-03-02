@@ -1,5 +1,12 @@
 #!/usr/bin/env python
- 
+
+# --------------------------------------------------------------------------- # 
+# Handle the modbus data from the Classic. 
+# The only methon called out of this is getModbusData
+# This opens the client to the Classic, gets the data and closes it. It does not
+# keep the link open to the Classic.
+# --------------------------------------------------------------------------- # 
+
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.client.sync import ModbusTcpClient as ModbusClient
@@ -12,7 +19,7 @@ import sys
 log = logging.getLogger('classic_mqtt')
 
 # --------------------------------------------------------------------------- # 
-# Read from the address and return a decoder
+# Read from the address and return the registers
 # --------------------------------------------------------------------------- # 
 def getRegisters(theClient, addr, count):
     try:
@@ -27,13 +34,18 @@ def getRegisters(theClient, addr, count):
     return result.registers
 
 
+# --------------------------------------------------------------------------- # 
+# Return a decoder for the passed in registers
+# --------------------------------------------------------------------------- # 
 def getDataDecoder(registers):
     return BinaryPayloadDecoder.fromRegisters(
         registers,
         byteorder=Endian.Big,
         wordorder=Endian.Little)
 
-
+# --------------------------------------------------------------------------- # 
+# Based on the address, return the decoded OrderedDict
+# --------------------------------------------------------------------------- # 
 def doDecode(addr, decoder):
     if (addr == 4100 ):
         decoded = OrderedDict([
@@ -132,7 +144,9 @@ def doDecode(addr, decoder):
     return decoded
 
 # --------------------------------------------------------------------------- # 
-# Run the main payload decoder
+# Get the data from the Classic. 
+# Open the cleint, read in the register, close the client, decode the data, 
+# combine it and return it 
 # --------------------------------------------------------------------------- # 
 def getModbusData(classicHost, classicPort):
 
