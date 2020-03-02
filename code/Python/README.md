@@ -13,12 +13,13 @@ Release notes:
 version 1.0.0
 <p>
 This tool is meant to run on a computer system that can reach a Midnite Classic Solar MPPT Controller. It will periodically connect to the
-Classic using MODBUS and then format that data into a JSON format and post it onto an MQTT server. An example installtion would be a Raspberry Pi
-Running on the local network with the Classic and has an MQTT service installed on it (like Mosquitto).
+Classic using MODBUS and then format that data into a JSON format and post it onto an MQTT server. An example installation would be a Raspberry Pi
+running on the local network with the Classic and has an MQTT service installed on it (like Mosquitto). The data would be collected by the tool
+and posted onto the MQTT service.
 <p>
-It requires python 3 and these packages be installed on the system to operate correctly:
-Pymodbus
-paho-mqtt
+It requires Python 3 and these packages be installed on the system to operate correctly:
++Pymodbus
++paho-mqtt
 <p>
 The following are the parameters that can be passed to the script
 <p>
