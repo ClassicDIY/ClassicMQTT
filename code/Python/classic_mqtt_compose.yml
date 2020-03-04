@@ -15,6 +15,7 @@ services:
       - "1883:1883"
       - "9001:9001"
   classic_mqtt:
+    image: classic_mqtt
     build: .
     environment:
       - LOGLEVEL=DEBUG
@@ -22,6 +23,9 @@ services:
       - mosquitto
     networks:
       - localnet
-    command: "--classic 192.168.0.225 --classic_port 502 --mqtt mosquitto --mqtt_root ClassicMQTT --user ${USER_ID} --pass ${USER_PASS}"
+
+    # Note you need to create your own .env file and add all of the ${VARIABLES} used below 
+    # VS Code lets you create ".env" easily, file explorer in Windows does not.
+    command: "--classic ${CLASSIC_HOST} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${CLASSIC_ROOT} --user ${USER_ID} --pass ${USER_PASS}"
 networks:
   localnet:
