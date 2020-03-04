@@ -8,7 +8,7 @@ __pycache__/
 
 # Files
 simple_run_classic.sh
-
+mosquitto.db
 # Distribution / packaging
 .Python
 build/

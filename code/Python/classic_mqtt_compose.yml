@@ -1,0 +1,27 @@
+version: "3"
+services:
+  mosquitto:
+    hostname: mosquitto
+    image: eclipse-mosquitto:latest
+    restart: always
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/mosquitto.passwd:/mosquitto/config/mosquitto.passwd
+      - ./mosquitto/log/:/mosquitto/log/
+      - ./mosquitto/data:/mosquitto/data
+    networks:
+      - localnet
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+  classic_mqtt:
+    build: .
+    environment:
+      - LOGLEVEL=DEBUG
+    depends_on:
+      - mosquitto
+    networks:
+      - localnet
+    command: "--classic 192.168.0.225 --classic_port 502 --mqtt mosquitto --mqtt_root ClassicMQTT --user ${USER_ID} --pass ${USER_PASS}"
+networks:
+  localnet:
