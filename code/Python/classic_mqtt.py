@@ -7,9 +7,9 @@ import json
 import time
 import threading
 import logging
-from logging.handlers import RotatingFileHandler
 import os
 import sys, getopt
+from random import randint, seed
 
 from support.classic_modbusdecoder import getModbusData
 from support.classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
@@ -52,7 +52,8 @@ mqttPassword              = "password"          #Default password
 # configure the logging
 # --------------------------------------------------------------------------- # 
 log = logging.getLogger('classic_mqtt')
-handler = RotatingFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"), maxBytes=5*1024*1024, backupCount=5)
+#handler = RotatingFileHandler(os.environ.get("LOGFILE", "./classic_mqtt.log"), maxBytes=5*1024*1024, backupCount=5)
+handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 handler.setFormatter(formatter)
 log.addHandler(handler) 
@@ -88,7 +89,9 @@ def on_connect(client, userdata, flags, rc):
 def on_disconnect(client, userdata, rc):
     global mqttConnected
     mqttConnected = False
-    log.debug("on_disconnect: Disconnected")
+    #if disconnetion was unexpectred (not a result of a disconnect request) then log it.
+    if rc!=mqttclient.MQTT_ERR_SUCCESS:
+        log.debug("on_disconnect: Disconnected. ReasonCode={}".format(rc))
 
 # --------------------------------------------------------------------------- # 
 # MQTT On Message
@@ -225,7 +228,8 @@ def handleArgs(argv):
     log.info("mqttPort = {}".format(mqttPort))
     log.info("mqttRoot = {}".format(mqttRoot))
     log.info("mqttUser = {}".format(mqttUser))
-    log.info("mqttPassword = {}".format(mqttPassword))
+    log.info("mqttPassword = **********")
+    #log.info("mqttPassword = {}".format("mqttPassword"))
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -237,15 +241,29 @@ def run(argv):
     log.info("classic_mqtt starting up...")
 
     handleArgs(argv)
+    
+    #random seed from the OS
+    random_data = os.urandom(4) 
+    ranSeed = int.from_bytes(random_data, byteorder="big") 
+    seed(ranSeed)
 
     mqttErrorCount = 0
+
     #setup the MQTT Client for publishing and subscribing
-    mqtt_client = mqttclient.Client(mqttUser+"_mqttclient") 
+    clientId = mqttUser + "_mqttclient_" + str(randint(100, 999))
+    log.info("Connecting with clientId=" + clientId)
+    mqtt_client = mqttclient.Client(clientId) 
     mqtt_client.username_pw_set(mqttUser, password=mqttPassword)
     mqtt_client.on_connect = on_connect    
     mqtt_client.on_disconnect = on_disconnect  
     mqtt_client.on_message = on_message 
-    mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
+    try:
+        log.info("Connecting to MQTT {}:{}".format(mqttHost, mqttPort))
+        mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
+    except Exception as e:
+        log.error("Unable to connect to MQTT, exiting...")
+        sys.exit(2)
+
     
     mqtt_client.loop_start()
 

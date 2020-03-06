@@ -1,0 +1,41 @@
+version: "3"
+services:
+  mosquitto:
+    hostname: mosquitto
+    image: eclipse-mosquitto:latest
+    restart: always
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/mosquitto.passwd:/mosquitto/config/mosquitto.passwd
+    networks:
+      - localnet
+    ports:
+      - "1883:1883"
+  classic_mqtt:
+    image: classic_mqtt
+    build: .
+    environment:
+      - LOGLEVEL=DEBUG
+    depends_on:
+      - mosquitto
+    networks:
+      - localnet
+
+    # Note you need to create your own .env file in the same directory as this yml file. 
+    # In it add ALL of the ${VARIABLES} used below. In windows, VS Code lets you create ".env" easily, 
+    # but in file explorer you cannot. On Linux, no issue.  
+    # Note, in the mosquitto.passwd file in the repo there are 2 users or you can create your own:
+    # ClassicPublisher password = ClassicPub123
+    # ClassicCLient password= ClassicClient123
+    #
+    # The file should look like the following.
+    #
+    # CLASSIC_HOST=<IP address or URL>
+    # CLASSIC_PORT=<Port usually 502>
+    # CLASSIC_ROOT=<The MQTT Root, usually ClassicMQTT>
+    # USER_ID=ClassicPublisher
+    # USER_PASS=ClassicPub123
+    #
+    command: "--classic ${CLASSIC_HOST} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${CLASSIC_ROOT} --user ${USER_ID} --pass ${USER_PASS}"
+networks:
+  localnet:
