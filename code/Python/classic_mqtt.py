@@ -257,6 +257,8 @@ def run(argv):
     mqtt_client.on_connect = on_connect    
     mqtt_client.on_disconnect = on_disconnect  
     mqtt_client.on_message = on_message 
+    will_topic = "{}/tele/LWT".format(mqttRoot)
+    mqtt_client.will_set(will_topic, payload="Offline", qos=0, retain=False)
     try:
         log.info("Connecting to MQTT {}:{}".format(mqttHost, mqttPort))
         mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
@@ -264,7 +266,7 @@ def run(argv):
         log.error("Unable to connect to MQTT, exiting...")
         sys.exit(2)
 
-    
+    mqtt_client.publish(will_topic, "Online",  qos=0, retain=False)
     mqtt_client.loop_start()
 
     #Setup the Async stuff
