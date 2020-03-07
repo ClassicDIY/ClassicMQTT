@@ -72,6 +72,8 @@ def on_connect(client, userdata, flags, rc):
             topic = "{}/classic/cmnd/#".format(mqttRoot)
             client.subscribe(topic)
             log.debug("Subscribed to {}".format(topic))
+            will_topic = "{}/tele/LWT".format(mqttRoot)
+            client.publish(will_topic, "Online",  qos=0, retain=False)
         except Exception as e:
             log.error("MQTT Subscribe failed")
             log.exception(e, exc_info=True)
@@ -266,7 +268,7 @@ def run(argv):
         log.error("Unable to connect to MQTT, exiting...")
         sys.exit(2)
 
-    mqtt_client.publish(will_topic, "Online",  qos=0, retain=False)
+    
     mqtt_client.loop_start()
 
     #Setup the Async stuff
