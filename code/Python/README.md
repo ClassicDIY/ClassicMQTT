@@ -25,8 +25,8 @@ When it comes time to run the program, there are parameters that can be set or p
 --mqtt <127.0.0.1>          : The IP or URL of the MQTT Broker, defaults to 127.0.0.1 if unspecified.  
 --mqtt_port <1883>          : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
 --mqtt_root <ClassicMQTT>   : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
---user <username>           : The username to access the MQTT Broker.  
---pass <password>           : The passowrd to access the MQTT Broker. 
+--mqtt_user <username>      : The username to access the MQTT Broker.  
+--mqtt_pass <password>      : The passowrd to access the MQTT Broker. 
 ```  
 ## **Run It**
 There are several ways to run this program:
@@ -46,12 +46,12 @@ Make sure that you have access to an MQTT broker; either install one on your ser
 3. Install or setup access to an MQTT server like [Dioty](http://www.dioty.co/).  Make sure that you have a username and password defined
 4. Run the program from the command line where the classic_mqtt.py is located with t eproper parameters:  
     ```
-    python3 classic_mqtt.py --classic <ClassicHost> --classic_port <502> --mqtt <127.0.0.1> --mqtt_root <ClassicMQTT> --user <username> --pass <password>
+    python3 classic_mqtt.py --classic <ClassicHost> --classic_port <502> --mqtt <127.0.0.1> --mqtt_root <ClassicMQTT> --mqtt_user <username> --mqtt_pass <password>
     ```
     **Example**:  
     If your Classic is at IP address 192.168.0.225 and your mqtt server is Dioty, the settings would look like this:  
     ```
-    python3 classic_mqtt.py --classic 192.168.0.225 --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com/ClassicMQTT --user joe.user@gmail.com --pass <Joe's Dioty password>
+    python3 classic_mqtt.py --classic 192.168.0.225 --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com/ClassicMQTT --mqtt_user joe.user@gmail.com --mqtt_pass <Joe's Dioty password>
     ```  
 ### **2. Using docker**
 Using the "Dockerfile" in this directory will allow an image to be built that can run the program. The Dockerfile uses a base image that already includes python and instructions to install the 3 needed libraries so you can skip installing python and pip, but you must install docker.  
@@ -74,8 +74,8 @@ Note: if you need to change anything in the yml file or the ".env" file, you nee
     CLASSIC=<IP address or URL>  
     CLASSIC_PORT=<Port usually 502>
     MQTT_ROOT=ClassicMQTT 
-    USER=ClassicPublisher 
-    PASS=ClassicPub123
+    MQTT_USER=ClassicPublisher 
+    MQTT_PASS=ClassicPub123
     ```
 3. Tell docker-compose to download, build and start up the both mosquitto and the script with the following command.
     ```

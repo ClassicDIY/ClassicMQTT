@@ -205,13 +205,13 @@ def handleArgs(argv):
     global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
 
     try:
-      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","user=","pass="])
+      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
             sys.exit()
         elif opt in ('--classic'):
             classicHost = arg
@@ -223,9 +223,9 @@ def handleArgs(argv):
             mqttPort = arg
         elif opt in ("--mqtt_root"):
             mqttRoot = arg
-        elif opt in ("--user"):
+        elif opt in ("--mqtt_user"):
             mqttUser = arg
-        elif opt in ("--pass"):
+        elif opt in ("--mqtt_pass"):
             mqttPassword = arg
 
     log.info("classicHost = {}".format(classicHost))

@@ -33,8 +33,8 @@ services:
     # CLASSIC=<IP address or URL>
     # CLASSIC_PORT=<Port usually 502>
     # MQTT_ROOT=<The MQTT Root, usually ClassicMQTT>
-    # USER=ClassicPublisher
-    # PASS=ClassicPub123
+    # MQTT_USER=ClassicPublisher
+    # MQTT_PASS=ClassicPub123
     #
     # After you have created the .env file issue the following command to build and run it:
     # docker-compose -f classic_mqtt_compose.yml up
@@ -43,6 +43,6 @@ services:
     # the following command to re-build it before running it again.
     # docker-compose -f classic_mqtt_compose.yml build
     #
-    command: "--classic ${CLASSIC} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${MQTT_ROOT} --user ${USER} --pass ${PASS}"
+    command: "--classic ${CLASSIC} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${MQTT_ROOT} --user ${MQTT_USER} --pass ${MQTT_PASS}"
 networks:
   localnet:
