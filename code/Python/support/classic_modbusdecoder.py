@@ -71,7 +71,7 @@ def doDecode(addr, decoder):
             ('BatCurrent', decoder.decode_16bit_uint()/10.0),          #4117
             ('EnergyToday', decoder.decode_16bit_uint()/10.0),         #4118
             ('Power', decoder.decode_16bit_uint()/1.0),                #4119
-            ('ChargeState', decoder.decode_8bit_uint()),               #4120 MSB
+            ('ChargeStage', decoder.decode_8bit_uint()),               #4120 MSB
             ('State', decoder.decode_8bit_uint()),                     #4120 LSB
             ('PVCurrent', decoder.decode_16bit_uint()/10.0),           #4121
             ('lastVOC', decoder.decode_16bit_uint()/10.0),             #4122

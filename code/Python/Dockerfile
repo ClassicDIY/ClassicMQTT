@@ -5,5 +5,4 @@ RUN pip install --no-cache-dir pymodbus paho-mqtt timeloop
 ADD classic_mqtt.py /
 ADD support/*.py support/
 
-
 ENTRYPOINT ["python3", "classic_mqtt.py"]
