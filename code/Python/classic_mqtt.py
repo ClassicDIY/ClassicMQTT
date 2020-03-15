@@ -72,12 +72,12 @@ def on_connect(client, userdata, flags, rc):
         log.debug("MQTT connected OK Returned code={}".format(rc))
         #subscribe to the commands
         try:
-            topic = "{}/classic/cmnd/#".format(mqttRoot)
+            topic = "{}{}/cmnd/#".format(mqttRoot, classicName)
             client.subscribe(topic)
             log.debug("Subscribed to {}".format(topic))
             
             #publish that we are Online
-            will_topic = "{}/tele/LWT".format(mqttRoot)
+            will_topic = "{}{}/tele/LWT".format(mqttRoot, classicName)
             mqttClient.publish(will_topic, "Online",  qos=0, retain=False)
         except Exception as e:
             log.error("MQTT Subscribe failed")
@@ -132,7 +132,7 @@ def on_message(client, userdata, message):
 def mqttPublish(client, data, subtopic):
     global mqttRoot, mqttConnected, mqttErrorCount
 
-    topic = "{}/classic/stat/{}".format(mqttRoot, subtopic)
+    topic = "{}{}/stat/{}".format(mqttRoot, classicName, subtopic)
     log.debug(topic)
     
     try:
@@ -202,21 +202,23 @@ def periodic():
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv):
     
-    global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
+    global classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
 
     try:
-      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass="])
+      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","classic_name=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot))
             sys.exit()
         elif opt in ('--classic'):
             classicHost = arg
         elif opt in ('--classic_port'):
             classicPort = arg
+        elif opt in ('--classic_name'):
+            classicName = arg
         elif opt in ("--mqtt"):
             mqttHost = arg
         elif opt in ("--mqtt_port"):
@@ -230,6 +232,7 @@ def handleArgs(argv):
 
     log.info("classicHost = {}".format(classicHost))
     log.info("classicPort = {}".format(classicPort))
+    log.info("classicName = {}".format(classicName))
     log.info("mqttHost = {}".format(mqttHost))
     log.info("mqttPort = {}".format(mqttPort))
     log.info("mqttRoot = {}".format(mqttRoot))
@@ -247,7 +250,8 @@ def run(argv):
     log.info("classic_mqtt starting up...")
 
     handleArgs(argv)
-    
+    if (mqttRoot.endswith("/") == False):
+        mqttRoot += "/"
     #random seed from the OS
     random_data = os.urandom(4) 
     ranSeed = int.from_bytes(random_data, byteorder="big") 
@@ -265,7 +269,7 @@ def run(argv):
     mqttClient.on_message = on_message
 
     #Set Last Will 
-    will_topic = "{}/tele/LWT".format(mqttRoot)
+    will_topic = "{}{}/tele/LWT".format(mqttRoot, classicName)
     mqttClient.will_set(will_topic, payload="Offline", qos=0, retain=False)
 
     try:
