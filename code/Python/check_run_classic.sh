@@ -12,7 +12,7 @@ export LOGLEVEL=DEBUG
 # Be sure to replace: 
 #    <classic ip or hostname> with your Classic
 #    <username> with your MQTT username
-#    <password> with your password
+#    <password> with your MQTT password
 #
 #An entry in cron to run this every minute might look like this:
 #* * * * * /home/pi/check_run_classic.sh
@@ -23,7 +23,7 @@ export LOGLEVEL=DEBUG
 case "$(pidof -x classic_mqtt.py | wc -w)" in
 
 0)  echo "Restarting classic_mqtt:     $(date)" >> /home/pi/classic_mqtt_run.log
-    ./classic_mqtt.py --classic <classic ip or hostname>  --mqtt_root ClassicMQTT --user <userrname> --pass <password>&
+    ./classic_mqtt.py --classic <classic ip or hostname>  --mqtt_root ClassicMQTT --mqtt_user <userrname> --mqtt_pass <password>&
     ;;
 1)  # all ok, do nothing
     ;;

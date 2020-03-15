@@ -13,7 +13,8 @@ from random import randint, seed
 
 from support.classic_modbusdecoder import getModbusData
 from support.classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
-
+from timeloop import Timeloop
+from datetime import timedelta
 
 # --------------------------------------------------------------------------- # 
 # GLOBALS
@@ -34,6 +35,7 @@ modbusErrorCount          = 0
 
 mqttConnected             = False
 mqttErrorCount            = 0
+mqttClient               = None
 
 doStop                    = False
 
@@ -59,6 +61,7 @@ handler.setFormatter(formatter)
 log.addHandler(handler) 
 log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
 
+tl = Timeloop()
 
 # --------------------------------------------------------------------------- # 
 # MQTT On Connect function
@@ -72,8 +75,10 @@ def on_connect(client, userdata, flags, rc):
             topic = "{}/classic/cmnd/#".format(mqttRoot)
             client.subscribe(topic)
             log.debug("Subscribed to {}".format(topic))
+            
+            #publish that we are Online
             will_topic = "{}/tele/LWT".format(mqttRoot)
-            client.publish(will_topic, "Online",  qos=0, retain=False)
+            mqttClient.publish(will_topic, "Online",  qos=0, retain=False)
         except Exception as e:
             log.error("MQTT Subscribe failed")
             log.exception(e, exc_info=True)
@@ -161,37 +166,36 @@ def timeToPublish():
         return True
 
 # --------------------------------------------------------------------------- # 
-# Async called to read from MODBUS and publish to MQTT
+# Periodic will be called every so often to read from MODBUS and publish to MQTT
 # --------------------------------------------------------------------------- # 
-def periodic(periodic_stop, client):
-    global modbusErrorCount, infoPublished, mqttErrorCount
-    if not periodic_stop.is_set():
-        try:
-            if timeToPublish() and mqttConnected:
-                data = {}
-                #Get the Modbus Data and store it.
-                data = getModbusData(classicHost, classicPort)
-                if data: # got data
-                    modbusErrorCount = 0
+@tl.job(interval=timedelta(seconds=MODBUS_POLL_RATE))
+def periodic():
+    global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount
+    #log.debug("in Periodic")
+    try:
+        if timeToPublish() and mqttConnected:
+            data = {}
+            #Get the Modbus Data and store it.
+            data = getModbusData(classicHost, classicPort)
+            if data: # got data
+                modbusErrorCount = 0
 
-                    if mqttPublish(client,encodeClassicData_readings(data),"readings"):
-                        if (not infoPublished): #Check if the Info has been published yet
-                            if mqttPublish(client,encodeClassicData_info(data),"info"):
-                                infoPublished = True                        
-                            else:
-                                mqttErrorCount += 1
-                    else:
-                        mqttErrorCount += 1
-
+                if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
+                    if (not infoPublished): #Check if the Info has been published yet
+                        if mqttPublish(mqttClient,encodeClassicData_info(data),"info"):
+                            infoPublished = True                        
+                        else:
+                            mqttErrorCount += 1
                 else:
-                    log.error("MODBUS data not good, skipping publish")
-                    modbusErrorCount += 1
-        except Exception as e:
-            log.error("Caught Error in periodic")
-            log.exception(e, exc_info=True)
+                    mqttErrorCount += 1
 
-        # set myself to be called again in correct number of seconds
-        threading.Timer(MODBUS_POLL_RATE, periodic, [periodic_stop, client]).start()
+            else:
+                log.error("MODBUS data not good, skipping publish")
+                modbusErrorCount += 1
+    except Exception as e:
+        log.error("Caught Error in periodic")
+        log.exception(e, exc_info=True)
+
 
 # --------------------------------------------------------------------------- # 
 # Handle the command line arguments
@@ -201,13 +205,13 @@ def handleArgs(argv):
     global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
 
     try:
-      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","user=","pass="])
+      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --user <username> --pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
             sys.exit()
         elif opt in ('--classic'):
             classicHost = arg
@@ -219,9 +223,9 @@ def handleArgs(argv):
             mqttPort = arg
         elif opt in ("--mqtt_root"):
             mqttRoot = arg
-        elif opt in ("--user"):
+        elif opt in ("--mqtt_user"):
             mqttUser = arg
-        elif opt in ("--pass"):
+        elif opt in ("--mqtt_pass"):
             mqttPassword = arg
 
     log.info("classicHost = {}".format(classicHost))
@@ -238,7 +242,7 @@ def handleArgs(argv):
 # --------------------------------------------------------------------------- # 
 def run(argv):
 
-    global doStop, mqttRoot, mqttConnected
+    global doStop, mqttRoot, mqttConnected, mqttClient
 
     log.info("classic_mqtt starting up...")
 
@@ -254,29 +258,28 @@ def run(argv):
     #setup the MQTT Client for publishing and subscribing
     clientId = mqttUser + "_mqttclient_" + str(randint(100, 999))
     log.info("Connecting with clientId=" + clientId)
-    mqtt_client = mqttclient.Client(clientId) 
-    mqtt_client.username_pw_set(mqttUser, password=mqttPassword)
-    mqtt_client.on_connect = on_connect    
-    mqtt_client.on_disconnect = on_disconnect  
-    mqtt_client.on_message = on_message 
+    mqttClient = mqttclient.Client(clientId) 
+    mqttClient.username_pw_set(mqttUser, password=mqttPassword)
+    mqttClient.on_connect = on_connect    
+    mqttClient.on_disconnect = on_disconnect  
+    mqttClient.on_message = on_message
+
+    #Set Last Will 
     will_topic = "{}/tele/LWT".format(mqttRoot)
-    mqtt_client.will_set(will_topic, payload="Offline", qos=0, retain=False)
+    mqttClient.will_set(will_topic, payload="Offline", qos=0, retain=False)
+
     try:
         log.info("Connecting to MQTT {}:{}".format(mqttHost, mqttPort))
-        mqtt_client.connect(host=mqttHost,port=int(mqttPort)) 
+        mqttClient.connect(host=mqttHost,port=int(mqttPort)) 
     except Exception as e:
         log.error("Unable to connect to MQTT, exiting...")
         sys.exit(2)
 
     
-    mqtt_client.loop_start()
+    mqttClient.loop_start()
 
-    #Setup the Async stuff
-    #define the stop for the function
-    periodic_stop = threading.Event()
-
-    # start up the async method (which will call itself in the future
-    periodic(periodic_stop, mqtt_client)
+    #Setup the Timeloop stuff so periodic gets called every 5 seconds
+    tl.start(block=False)
 
     keepLooping = True
 
@@ -306,10 +309,9 @@ def run(argv):
             log.exception(e, exc_info=True)
     
     log.info("Stopping periodic async...")
-    periodic_stop.set()
-
+    tl.stop()
     log.info("Stopping MQTT loop...")
-    mqtt_client.loop_stop()
+    mqttClient.loop_stop()
 
     log.info("Exiting classic_mqtt")
 

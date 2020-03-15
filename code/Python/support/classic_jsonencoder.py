@@ -26,7 +26,7 @@ def encodeClassicData_readings(decoded):
     # "NetAmpHours":0,
     classicData["NetAmpHours"] = decoded["WbJrAmpHourNET"]
     # "ChargeState":0,
-    classicData["ChargeState"] = decoded["ChargeState"]
+    classicData["ChargeState"] = decoded["ChargeStage"] #it is mis-labeled in the ESP32 code
     # "InfoFlagsBits":-1308610300,
     classicData["InfoFlagsBits"] = decoded["InfoFlagsBits"]
     # "ReasonForResting":104,
