@@ -5,6 +5,7 @@ from paho.mqtt import client as mqttclient
 from collections import OrderedDict
 import json
 import time
+import socket
 import threading
 import logging
 import os
@@ -13,22 +14,23 @@ from random import randint, seed
 
 from support.classic_modbusdecoder import getModbusData
 from support.classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
+from support.classic_validate import validateIntParameter, validateURLParameter, validateStrParameter
 from timeloop import Timeloop
 from datetime import timedelta
 
 # --------------------------------------------------------------------------- # 
 # GLOBALS
 # --------------------------------------------------------------------------- # 
-MODBUS_POLL_RATE          = 5                   #Get data from the Classic every 5 seconds
-MQTT_PUBLISH_RATE         = 5                   #Check to see if anything needs publishing every 5 seconds.
-MQTT_SNOOZE_COUNT         = 60                  #When no one is listening, publish every 5 minutes
-WAKE_COUNT                = 60                  #The number of times to publish after getting a "wake"
-MODBUS_MAX_ERROR_COUNT    = 300                 #Number of errors on the MODBUS before the tool exits
-MQTT_MAX_ERROR_COUNT      = 300                 #Number of errors on the MQTT before the tool exits
-MAIN_LOOP_SLEEP           = 5                   #Seconds to sleep in the main loop
+DEFAULT_PULSE_RATE        = 5         #Periodic gets called every this many seconds
+DEFAULT_SNOOZE_CYCLES     = 60        #When nobody is listening, snooze this many cycles
+DEFAULT_WAKE_COUNT        = 60        #The number of times to publish at the fast rate after getting a "wake"
+MODBUS_MAX_ERROR_COUNT    = 300       #Number of errors on the MODBUS before the tool exits
+MQTT_MAX_ERROR_COUNT      = 300       #Number of errors on the MQTT before the tool exits
+MAIN_LOOP_SLEEP_SECS      = 5         #Seconds to sleep in the main loop
 
 wakeCount                 = 0
 infoPublished             = True
+snoozeCycles              = DEFAULT_SNOOZE_CYCLES
 snoozeCount               = 0
 snoozing                  = True
 modbusErrorCount          = 0
@@ -151,7 +153,7 @@ def mqttPublish(client, data, subtopic):
 def timeToPublish():
     global snoozing, snoozeCount, wakeCount, infoPublished
     if snoozing:
-        if (snoozeCount >= MQTT_SNOOZE_COUNT):
+        if (snoozeCount >= snoozeCycles):
             infoPublished = False
             snoozeCount = 0
             return True
@@ -160,7 +162,7 @@ def timeToPublish():
             return False
     else:
         wakeCount += 1
-        if wakeCount >= WAKE_COUNT:
+        if wakeCount >= DEFAULT_WAKE_COUNT:
             snoozing = True
             wakeCount = 0
         return True
@@ -168,7 +170,7 @@ def timeToPublish():
 # --------------------------------------------------------------------------- # 
 # Periodic will be called every so often to read from MODBUS and publish to MQTT
 # --------------------------------------------------------------------------- # 
-@tl.job(interval=timedelta(seconds=MODBUS_POLL_RATE))
+@tl.job(interval=timedelta(seconds=DEFAULT_PULSE_RATE))
 def periodic():
     global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount
     #log.debug("in Periodic")
@@ -197,36 +199,40 @@ def periodic():
         log.exception(e, exc_info=True)
 
 
+
 # --------------------------------------------------------------------------- # 
 # Handle the command line arguments
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv):
     
-    global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword
+    global classicHost, classicPort, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword, snoozeCycles
 
     try:
-      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass="])
+      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass=","snooze_secs="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --snooze_secs <{}>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot, snoozeCycles*DEFAULT_PULSE_RATE))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot))
+            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --snooze_secs <{}>".format(classicHost, classicPort, mqttHost, mqttPort, mqttRoot, snoozeCycles*DEFAULT_PULSE_RATE))
             sys.exit()
         elif opt in ('--classic'):
-            classicHost = arg
+            classicHost = validateURLParameter(arg,"classic",classicHost)
         elif opt in ('--classic_port'):
-            classicPort = arg
+            classicPort = validateIntParameter(arg,"classic_port", classicPort)
         elif opt in ("--mqtt"):
-            mqttHost = arg
+            mqttHost = validateURLParameter(arg,"mqtt",mqttHost)
         elif opt in ("--mqtt_port"):
-            mqttPort = arg
+            mqttPort = validateIntParameter(arg,"mqtt_port", mqttPort)
         elif opt in ("--mqtt_root"):
-            mqttRoot = arg
+            mqttRoot = validateStrParameter(arg,"mqtt_root", mqttRoot)
         elif opt in ("--mqtt_user"):
-            mqttUser = arg
+            mqttUser = validateStrParameter(arg,"mqtt_user", mqttUser)
         elif opt in ("--mqtt_pass"):
-            mqttPassword = arg
+            mqttPassword = validateStrParameter(arg,"mqtt_pass", mqttPassword)
+        elif opt in ("--snooze_secs"):
+            snoozeCycles = int(validateIntParameter(arg,"snooze_secs", int(snoozeCycles*DEFAULT_PULSE_RATE))/DEFAULT_PULSE_RATE)
+
 
     log.info("classicHost = {}".format(classicHost))
     log.info("classicPort = {}".format(classicPort))
@@ -236,6 +242,7 @@ def handleArgs(argv):
     log.info("mqttUser = {}".format(mqttUser))
     log.info("mqttPassword = **********")
     #log.info("mqttPassword = {}".format("mqttPassword"))
+    log.info("snoozeCycles = {}".format(snoozeCycles))
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -286,7 +293,7 @@ def run(argv):
     log.debug("Starting main loop...")
     while keepLooping:
         try:
-            time.sleep(MAIN_LOOP_SLEEP)
+            time.sleep(MAIN_LOOP_SLEEP_SECS)
             #check to see if shutdown received
             if doStop:
                 log.info("Stopping...")
