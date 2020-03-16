@@ -12,7 +12,7 @@
 #define WAKE_PUBLISH_RATE 5000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.2.3"
+#define CONFIG_VERSION "V1.2.5"
 #define PORT_CONFIG_LEN 6
 
 AsyncMqttClient _mqttClient;
@@ -24,26 +24,29 @@ IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
 char _classicPort[PORT_CONFIG_LEN];
+char _classicName[IOTWEBCONF_WORD_LEN];
 char _mqttServer[IOTWEBCONF_WORD_LEN];
 char _mqttPort[PORT_CONFIG_LEN];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
-char _mqttRootTopic[IOTWEBCONF_WORD_LEN];
-char _willTopic[IOTWEBCONF_WORD_LEN];
+char _mqttRootTopic[64];
+char _willTopic[64];
+char _rootTopicPrefix[64];
 IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, PORT_CONFIG_LEN, "text", NULL, "502");
+IotWebConfParameter classicNameParam = IotWebConfParameter("Classic Name", "classicName", _classicName, IOTWEBCONF_WORD_LEN);
 IotWebConfSeparator MQTT_seperatorParam = IotWebConfSeparator("MQTT");
 IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, PORT_CONFIG_LEN, "text", NULL, "1883");
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
+IotWebConfParameter mqttRootTopicParam = IotWebConfParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
 unsigned long _publishRate = SNOOZE_PUBLISH_RATE;
 int _publishCount = 0;
-uint32_t boilerPlatePollRate = 0;
-String fullTopic_PUB;
+
 bool mqttReadingsAvailable = false;
 bool boilerPlateInfoPublished = false;
 uint8_t boilerPlateReadBitField = 0;
@@ -57,9 +60,8 @@ ModbusRegisterBank _registers[] = {
 	{false, 4100, 44},
 	{false, 4360, 22},
 	{false, 4163, 2},
-	{false, 4209, 4},
-	{false, 4243, 32}
-	//{ false, 16386, 8 }
+	{false, 4243, 32},
+	{ false, 16386, 8 }
 };
 
 void publish(const char *subtopic, const char *value, boolean retained = false)
@@ -67,7 +69,7 @@ void publish(const char *subtopic, const char *value, boolean retained = false)
 	if (_mqttClient.connected())
 	{
 		char buf[64];
-		sprintf(buf, "%s/classic/stat/%s", _mqttRootTopic, subtopic);
+		sprintf(buf, "%s/stat/%s", _rootTopicPrefix, subtopic);
 		_mqttClient.publish(buf, 0, retained, value);
 	}
 }
@@ -82,7 +84,7 @@ void publishReadings()
 
 		root["appVersion"] = _chargeControllerInfo.appVersion;
 		root["buildDate"] = _chargeControllerInfo.buildDate;
-		root["deviceName"] = _chargeControllerInfo.deviceName;
+		root["deviceName"] = _classicName;
 		root["deviceType"] = "Classic";
 		root["endingAmps"] = _chargeControllerInfo.endingAmps + 0.01;
 		root["hasWhizbang"] = _chargeControllerInfo.hasWhizbang;
@@ -327,29 +329,11 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 			_chargeControllerInfo.hasWhizbang = Aux12FunctionS == 18;
 		}
 	}
-	else if (byteCount == 8)
+	else if (byteCount == 64)
 	{
 		if ((boilerPlateReadBitField & 0x04) == 0)
 		{
 			boilerPlateReadBitField |= 0x04;
-			char unit[9];
-			unit[0] = data[1];
-			unit[1] = data[0];
-			unit[2] = data[3];
-			unit[3] = data[2];
-			unit[4] = data[5];
-			unit[5] = data[4];
-			unit[6] = data[7];
-			unit[7] = data[6];
-			unit[8] = 0;
-			_chargeControllerInfo.deviceName = unit;
-		}
-	}
-	else if (byteCount == 64)
-	{
-		if ((boilerPlateReadBitField & 0x08) == 0)
-		{
-			boilerPlateReadBitField |= 0x08;
 			_chargeControllerInfo.VbattRegSetPTmpComp = GetFloatValue(0, data, 10.0);
 			_chargeControllerInfo.nominalBatteryVoltage = Getuint16Value(1, data);
 			_chargeControllerInfo.endingAmps = GetFloatValue(2, data, 10.0);
@@ -358,9 +342,9 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 	}
 	else if (byteCount == 16)
 	{
-		if ((boilerPlateReadBitField & 0x10) == 0)
+		if ((boilerPlateReadBitField & 0x08) == 0)
 		{
-			boilerPlateReadBitField |= 0x10;
+			boilerPlateReadBitField |= 0x08;
 			short reg16387 = Getuint16Value(0, data);
 			short reg16388 = Getuint16Value(1, data);
 			short reg16389 = Getuint16Value(2, data);
@@ -378,9 +362,9 @@ void onMqttConnect(bool sessionPresent)
 {
 	logi("Connected to MQTT. Session present: %d", sessionPresent);
 	char buf[64];
-	sprintf(buf, "%s/classic/cmnd/#", _mqttRootTopic);
+	sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 	_mqttClient.subscribe(buf, 0);
-	_mqttClient.publish(_willTopic, 0, true, "Online");
+	_mqttClient.publish(_willTopic, 0, false, "Online");
 	logi("Subscribed to [%s], qos: 0", buf);
 }
 
@@ -400,7 +384,20 @@ void connectToMqtt()
 		if (strlen(_mqttServer) > 0) // mqtt configured
 		{
 			logi("Connecting to MQTT...");
+			int len = strlen(_mqttRootTopic);
+			strncpy(_rootTopicPrefix, _mqttRootTopic, len);
+			if (_rootTopicPrefix[len-1] != '/')
+			{
+				strcat(_rootTopicPrefix,  "/");
+			}
+			strcat(_rootTopicPrefix,  _classicName);
+
+			sprintf(_willTopic, "%s/tele/LWT", _rootTopicPrefix);
+			_mqttClient.setWill(_willTopic, 0, true, "Offline");
 			_mqttClient.connect();
+
+			logi("_mqttRootTopic: %s", _mqttRootTopic);
+			logi("rootTopicPrefix: %s", _rootTopicPrefix);
 		}
 	}
 }
@@ -426,6 +423,10 @@ void handleRoot()
 	s += "<ul>";
 	s += "<li>Classic port: ";
 	s += _classicPort;
+	s += "</ul>";
+	s += "<ul>";
+	s += "<li>Classic Name: ";
+	s += _classicName;
 	s += "</ul>";
 	s += "<ul>";
 	s += "<li>MQTT server: ";
@@ -472,7 +473,7 @@ void WiFiEvent(WiFiEvent_t event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
 		logi("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
-		xTimerStart(mqttReconnectTimer, 0);
+		xTimerStart(mqttReconnectTimer, 0); // connect to MQTT once we have wifi
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
 		logi("WiFi lost connection");
@@ -532,11 +533,13 @@ void setup()
 	// setup EEPROM parameters
 	_iotWebConf.addParameter(&classicIPParam);
 	_iotWebConf.addParameter(&classicPortParam);
+	_iotWebConf.addParameter(&classicNameParam);
 	_iotWebConf.addParameter(&MQTT_seperatorParam);
 	_iotWebConf.addParameter(&mqttServerParam);
 	_iotWebConf.addParameter(&mqttPortParam);
 	_iotWebConf.addParameter(&mqttUserNameParam);
 	_iotWebConf.addParameter(&mqttUserPasswordParam);
+	_iotWebConf.addParameter(&mqttRootTopicParam);
 
 	// setup callbacks for IotWebConf
 	_iotWebConf.setConfigSavedCallback(&configSaved);
@@ -552,6 +555,7 @@ void setup()
 		_mqttPort[0] = '\0';
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
+		_mqttRootTopic[0] = '\0';
 		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
@@ -561,15 +565,13 @@ void setup()
 		_mqttClient.onDisconnect(onMqttDisconnect);
 		_mqttClient.onMessage(onMqttMessage);
 		_mqttClient.onPublish(onMqttPublish);
-		sprintf(_mqttRootTopic, "%s", _iotWebConf.getThingName());
-		sprintf(_willTopic, "%s/tele/LWT", _mqttRootTopic);
+
 		IPAddress ip;
 		if (ip.fromString(_mqttServer))
 		{
 			int port = atoi(_mqttPort);
 			_mqttClient.setServer(ip, port);
 			_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
-			_mqttClient.setWill(_willTopic, 0, true, "Offline");
 		}
 		if (ip.fromString(_classicIP))
 		{
@@ -584,7 +586,6 @@ void setup()
 	_webServer.on("/config", [] { _iotWebConf.handleConfig(); });
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
 	_lastPublishTimeStamp = millis() + MODBUS_POLL_RATE;
-	boilerPlatePollRate = millis();
 	logi("Done setup");
 }
 
