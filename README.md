@@ -32,7 +32,7 @@ the binary for the ESP32 is available here https://github.com/graham22/ClassicMQ
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
 
 <p>
-https://drive.google.com/open?id=1cQhjAWIH4PhgNMwWsTN4Lxa3oNaQ4q0p
+  https://drive.google.com/drive/folders/1S2BWLFn_nU0NmxXmyhJaz97h0K1_OY6B
 </p>
 
 <p>
