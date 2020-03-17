@@ -61,7 +61,7 @@ ModbusRegisterBank _registers[] = {
 	{false, 4360, 22},
 	{false, 4163, 2},
 	{false, 4243, 32},
-	{ false, 16386, 8 }
+	{false, 16386, 4 }
 };
 
 void publish(const char *subtopic, const char *value, boolean retained = false)
@@ -81,19 +81,19 @@ void publishReadings()
 	if ((boilerPlateReadBitField & 0x0f) == 0x0f && boilerPlateInfoPublished == false)
 	{
 		boilerPlateInfoPublished = true;
-
-		root["appVersion"] = _chargeControllerInfo.appVersion;
-		root["buildDate"] = _chargeControllerInfo.buildDate;
-		root["deviceName"] = _classicName;
-		root["deviceType"] = "Classic";
-		root["endingAmps"] = _chargeControllerInfo.endingAmps + 0.01;
-		root["hasWhizbang"] = _chargeControllerInfo.hasWhizbang;
-		root["lastVOC"] = _chargeControllerInfo.lastVOC + 0.01;
-		root["model"] = _chargeControllerInfo.model;
-		root["mpptMode"] = _chargeControllerInfo.mpptMode;
-		root["netVersion"] = _chargeControllerInfo.netVersion;
-		root["nominalBatteryVoltage"] = _chargeControllerInfo.nominalBatteryVoltage;
 		root["unitID"] = _chargeControllerInfo.unitID;
+		root["deviceName"] = _classicName;
+		root["hasWhizbang"] = _chargeControllerInfo.hasWhizbang;
+		root["deviceType"] = "Classic";
+		root["model"] = _chargeControllerInfo.model;
+		root["lastVOC"] = _chargeControllerInfo.lastVOC + 0.01;
+		root["appVersion"] = _chargeControllerInfo.appVersion;
+		root["netVersion"] = _chargeControllerInfo.netVersion;
+		root["buildDate"] = _chargeControllerInfo.buildDate;
+		root["nominalBatteryVoltage"] = _chargeControllerInfo.nominalBatteryVoltage;
+		root["mpptMode"] = _chargeControllerInfo.mpptMode;
+		root["endingAmps"] = _chargeControllerInfo.endingAmps + 0.01;
+		root["macAddress"] = _chargeControllerInfo.macAddress;
 		String s;
 		serializeJson(root, s);
 		publish("info", s.c_str());
@@ -293,6 +293,7 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
 		_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
 
+
 		if ((boilerPlateReadBitField & 0x1) == 0)
 		{
 			boilerPlateReadBitField |= 0x1;
@@ -306,6 +307,12 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 			_chargeControllerInfo.buildDate = buf;
 			_chargeControllerInfo.lastVOC = GetFloatValue(21, data, 10.0);
 			_chargeControllerInfo.unitID = Getuint32Value(10, data);
+			short reg6 = Getuint16Value(5, data);
+			short reg7 = Getuint16Value(6, data);
+			short reg8 =  Getuint16Value(7, data);
+			char mac[32];
+			sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x", reg8 >> 8, reg8 & 0x00ff, reg7 >> 8, reg7 & 0x00ff, reg6 >> 8, reg6 & 0x00ff);
+			_chargeControllerInfo.macAddress = mac;
 		}
 	}
 	else if (byteCount == 44)
@@ -340,7 +347,7 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 			_chargeControllerInfo.ReasonForResting = Getuint16Value(31, data);
 		}
 	}
-	else if (byteCount == 16)
+	else if (byteCount == 8)
 	{
 		if ((boilerPlateReadBitField & 0x08) == 0)
 		{
@@ -567,12 +574,16 @@ void setup()
 		_mqttClient.onPublish(onMqttPublish);
 
 		IPAddress ip;
+		int port = atoi(_mqttPort);
 		if (ip.fromString(_mqttServer))
 		{
-			int port = atoi(_mqttPort);
 			_mqttClient.setServer(ip, port);
-			_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
 		}
+		else
+		{
+			_mqttClient.setServer(_mqttServer, port);
+		}
+		_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
 		if (ip.fromString(_classicIP))
 		{
 			int port = atoi(_classicPort);
