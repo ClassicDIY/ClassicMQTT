@@ -135,7 +135,7 @@ def on_message(client, userdata, message):
 def mqttPublish(client, data, subtopic):
     global mqttRoot, mqttConnected, mqttErrorCount
 
-    topic = "{}/{}/stat/{}".format(mqttRoot, classicName, subtopic)
+    topic = "{}{}/stat/{}".format(mqttRoot, classicName, subtopic)
     log.debug(topic)
     
     try:
@@ -277,7 +277,7 @@ def run(argv):
     mqttClient.on_message = on_message
 
     #Set Last Will 
-    will_topic = "{}/{}/tele/LWT".format(mqttRoot, classicName)
+    will_topic = "{}{}/tele/LWT".format(mqttRoot, classicName)
     mqttClient.will_set(will_topic, payload="Offline", qos=0, retain=False)
 
     try:
