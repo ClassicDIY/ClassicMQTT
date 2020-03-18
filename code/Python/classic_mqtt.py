@@ -135,7 +135,7 @@ def on_message(client, userdata, message):
 def mqttPublish(client, data, subtopic):
     global mqttRoot, mqttConnected, mqttErrorCount
 
-    topic = "{}/{}/stat/{}".format(mqttRoot, classicName, subtopic)
+    topic = "{}{}/stat/{}".format(mqttRoot, classicName, subtopic)
     log.debug(topic)
     
     try:
