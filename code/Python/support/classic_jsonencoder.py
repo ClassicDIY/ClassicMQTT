@@ -90,7 +90,7 @@ def encodeClassicData_info(decoded):
     # "appVersion":"",
     classicData["appVersion"] = decoded["app_rev"]
     #Assemble the string
-    uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"]]
+    uint_array = [decoded["Name1"],decoded["Name0"],decoded["Name3"],decoded["Name2"],decoded["Name5"],decoded["Name4"],decoded["Name7"],decoded["Name6"]]
     # "deviceName":"CLASSIC",
     classicData["deviceName"] = "".join(chr(x) for x in uint_array)
     # "buildDate":"Tuesday, February 6, 2018",
