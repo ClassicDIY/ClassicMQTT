@@ -21,7 +21,8 @@ When it comes time to run the program, there are parameters that can be set or p
 **Parameters:**  
 ```  
 --classic <ClassicHost>     : The IP address of your Midnite Classic Solar Controller, no default.  
---classic_port <502>        : The prot for the Classic MODBUS, defaults to 502 if unspecified.  
+--classic_port <502>        : The prot for the Classic MODBUS, defaults to 502 if unspecified. 
+--classic_name <Classic>    : The name used in the Android app when adding a controller to the nav bar. 
 --mqtt <127.0.0.1>          : The IP or URL of the MQTT Broker, defaults to 127.0.0.1 if unspecified.  
 --mqtt_port <1883>          : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
 --mqtt_root <ClassicMQTT>   : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
@@ -46,12 +47,12 @@ Make sure that you have access to an MQTT broker; either install one on your ser
 3. Install or setup access to an MQTT server like [Dioty](http://www.dioty.co/).  Make sure that you have a username and password defined
 4. Run the program from the command line where the classic_mqtt.py is located with t eproper parameters:  
     ```
-    python3 classic_mqtt.py --classic <ClassicHost> --classic_port <502> --mqtt <127.0.0.1> --mqtt_root <ClassicMQTT> --mqtt_user <username> --mqtt_pass <password>
+    python3 classic_mqtt.py --classic <ClassicHost> --classic_port <502> --classic_name <Classic> --mqtt <127.0.0.1> --mqtt_root <ClassicMQTT> --mqtt_user <username> --mqtt_pass <password>
     ```
     **Example**:  
     If your Classic is at IP address 192.168.0.225 and your mqtt server is Dioty, the settings would look like this:  
     ```
-    python3 classic_mqtt.py --classic 192.168.0.225 --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com/ClassicMQTT --mqtt_user joe.user@gmail.com --mqtt_pass <Joe's Dioty password>
+    python3 classic_mqtt.py --classic 192.168.0.225 --classic_name Classic --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com/ClassicMQTT --mqtt_user joe.user@gmail.com --mqtt_pass <Joe's Dioty password>
     ```  
 ### **2. Using docker**
 Using the "Dockerfile" in this directory will allow an image to be built that can run the program. The Dockerfile uses a base image that already includes python and instructions to install the 3 needed libraries so you can skip installing python and pip, but you must install docker.  
@@ -63,7 +64,7 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
     ```
 4. Run the docker image and pass the parameters (substituing the correct values for parameter values):  
     ```
-    docker run classic_mqtt --classic <ClassicHost> --classic_port <502> --mqtt <127.0.0.1> --mqtt_port <1883> --mqtt_root <ClassicMQTT> --user <username> --pass <password>
+    docker run classic_mqtt --classic <ClassicHost> --classic_port <502> --classic_name <Classic> --mqtt <127.0.0.1> --mqtt_port <1883> --mqtt_root <ClassicMQTT> --user <username> --pass <password>
     ```
 ### **3. Using docker-compose**
 Use this method if you want to automatically install an MQTT broker (mosquitto) locally and run the program at the same time. This method takes advantage of docker-compose which will build a system that includes both an MQTT service and a service running the classic_mqtt.py script automatically. The definition for thse services are in classic_mqtt_compose.yml. If you are pushing your data to the internet, this may not be the preferred method for you.
