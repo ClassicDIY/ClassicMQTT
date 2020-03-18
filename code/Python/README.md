@@ -74,6 +74,7 @@ Note: if you need to change anything in the yml file or the ".env" file, you nee
     ```
     CLASSIC=<IP address or URL>  
     CLASSIC_PORT=<Port usually 502>
+    CLASSIC_NAME=Classic
     MQTT_ROOT=ClassicMQTT 
     MQTT_USER=ClassicPublisher 
     MQTT_PASS=ClassicPub123
