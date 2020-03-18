@@ -10,6 +10,7 @@ struct ChargeControllerInfo
 	bool hasWhizbang = false;
 
 	String model;
+	String macAddress;
 	float lastVOC = 0;
 	String appVersion = "";
 	String netVersion = "";
