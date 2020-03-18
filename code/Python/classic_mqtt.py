@@ -46,7 +46,7 @@ doStop                    = False
 # --------------------------------------------------------------------------- # 
 classicHost               = "ClassicHost"       #Default Classic
 classicPort               = "502"               #Default MODBUS port
-classicName               = "Classic"           #Default Classic Name
+classicName               = "classic"           #Default Classic Name
 mqttHost                  = "127.0.0.1"         #Defult MQTT host
 mqttPort                  = 1883                #Default MQTT port
 mqttRoot                  = "ClassicMQTT"       #Dfault Root to publish on
