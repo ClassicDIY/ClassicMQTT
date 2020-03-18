@@ -277,7 +277,7 @@ def run(argv):
     mqttClient.on_message = on_message
 
     #Set Last Will 
-    will_topic = "{}/{}/tele/LWT".format(mqttRoot, classicName)
+    will_topic = "{}{}/tele/LWT".format(mqttRoot, classicName)
     mqttClient.will_set(will_topic, payload="Offline", qos=0, retain=False)
 
     try:
