@@ -1,7 +1,7 @@
-<h1>ClassicMQTT publisher</h1>
+<h1>Modbus to MQTT publisher for the Midnite Solar Classic Charge Controller</h1>
 
 <p>
-The ClassicMQTT publisher will read data from your classic charge controller using the Modbus protocol and publish the data to a MQTT broker. If you use a cloud based broker like <a href="http://www.dioty.co/">dioty.co</a> then you can monitor your classic charge controller from anywhere on the internet using the Android MQTT subscriber App. 
+The ClassicMQTT publisher will read data from your classic charge controller using the Modbus protocol and publish the data to a MQTT broker. If you use a cloud based broker like <a href="http://www.dioty.co/">dioty.co</a> then you can monitor your classic charge controller from anywhere on the internet using the Android MQTT subscriber App. This also allows you to integrate other MQTT subscriber applications like HomeAssistant and NodeRed.
 
 The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or implied.
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
@@ -9,13 +9,15 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 
 <p>
 The code for the ClassicMQTT publisher has been implemented for the <a href="https://www.amazon.ca/Development-Wireless-Module-Bluetooth-Arduino/dp/B07HG5XHLB/ref=sr_1_7?crid=2TVCRO81CV0D4&keywords=esp32+development+board&qid=1580566571&sprefix=esp32%2Caps%2C367&sr=8-7">ESP32 dev board</a> and for the <a href="https://www.raspberrypi.org/products/raspberry-pi-4-model-b/">Raspberry Pi</a>.
-
-Please refer to the <a href="https://github.com/graham22/ClassicMQTT/wiki">ClassicMQTT wiki</a> for more information
 </p>
 
 <p align="center">
   <img src="./docs/images_en/ESP32.png" width="320"/>
   <img src="./pictures/Raspberry Pi.jpg" width="320"/>
+</p>
+
+<p>
+Please refer to the <a href="https://github.com/graham22/ClassicMQTT/wiki">ClassicMQTT wiki</a> for more information.
 </p>
 
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
