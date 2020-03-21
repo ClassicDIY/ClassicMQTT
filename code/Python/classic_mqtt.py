@@ -37,7 +37,7 @@ modbusErrorCount          = 0
 
 mqttConnected             = False
 mqttErrorCount            = 0
-mqttClient               = None
+mqttClient                = None
 
 doStop                    = False
 
