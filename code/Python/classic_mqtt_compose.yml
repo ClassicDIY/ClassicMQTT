@@ -26,7 +26,7 @@ services:
     # but in file explorer you cannot. On Linux, no issue.  
     # Note, in the mosquitto.passwd file in the repo there are 2 users or you can create your own:
     # ClassicPublisher password = ClassicPub123
-    # ClassicCLient password= ClassicClient123
+    # ClassicClient password= ClassicClient123
     #
     # The file should look like the following.
     #
