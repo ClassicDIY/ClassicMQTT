@@ -14,6 +14,7 @@
 #define WAKE_COUNT 60
 #define CONFIG_VERSION "V1.2.5"
 #define PORT_CONFIG_LEN 6
+#define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
 AsyncMqttClient _mqttClient;
 TimerHandle_t mqttReconnectTimer;
@@ -21,6 +22,7 @@ DNSServer _dnsServer;
 WebServer _webServer(80);
 HTTPUpdateServer _httpUpdater;
 IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
+hw_timer_t *_watchdogTimer = NULL;
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
 char _classicPort[PORT_CONFIG_LEN];
@@ -52,7 +54,6 @@ bool boilerPlateInfoPublished = false;
 uint8_t boilerPlateReadBitField = 0;
 ChargeControllerInfo _chargeControllerInfo;
 esp32ModbusTCP *_pClassic;
-
 int _currentRegister = 0;
 
 #define numBanks (sizeof(_registers) / sizeof(ModbusRegisterBank))
@@ -61,8 +62,32 @@ ModbusRegisterBank _registers[] = {
 	{false, 4360, 22},
 	{false, 4163, 2},
 	{false, 4243, 32},
-	{false, 16386, 4 }
-};
+	{false, 16386, 4}};
+
+void IRAM_ATTR resetModule()
+{
+	// ets_printf("watchdog timer expired - rebooting\n");
+	esp_restart();
+}
+
+void init_watchdog()
+{
+	if (_watchdogTimer == NULL)
+	{
+		_watchdogTimer = timerBegin(0, 80, true);					   //timer 0, div 80
+		timerAttachInterrupt(_watchdogTimer, &resetModule, true);	  //attach callback
+		timerAlarmWrite(_watchdogTimer, WATCHDOG_TIMER * 1000, false); //set time in us
+		timerAlarmEnable(_watchdogTimer);							   //enable interrupt
+	}
+}
+
+void feed_watchdog()
+{
+	if (_watchdogTimer != NULL)
+	{
+		timerWrite(_watchdogTimer, 0); // feed the watchdog
+	}
+}
 
 void publish(const char *subtopic, const char *value, boolean retained = false)
 {
@@ -293,7 +318,6 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 		_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
 		_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
 
-
 		if ((boilerPlateReadBitField & 0x1) == 0)
 		{
 			boilerPlateReadBitField |= 0x1;
@@ -309,7 +333,7 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 			_chargeControllerInfo.unitID = Getuint32Value(10, data);
 			short reg6 = Getuint16Value(5, data);
 			short reg7 = Getuint16Value(6, data);
-			short reg8 =  Getuint16Value(7, data);
+			short reg8 = Getuint16Value(7, data);
 			char mac[32];
 			sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x", reg8 >> 8, reg8 & 0x00ff, reg7 >> 8, reg7 & 0x00ff, reg6 >> 8, reg6 & 0x00ff);
 			_chargeControllerInfo.macAddress = mac;
@@ -393,11 +417,11 @@ void connectToMqtt()
 			logi("Connecting to MQTT...");
 			int len = strlen(_mqttRootTopic);
 			strncpy(_rootTopicPrefix, _mqttRootTopic, len);
-			if (_rootTopicPrefix[len-1] != '/')
+			if (_rootTopicPrefix[len - 1] != '/')
 			{
-				strcat(_rootTopicPrefix,  "/");
+				strcat(_rootTopicPrefix, "/");
 			}
-			strcat(_rootTopicPrefix,  _classicName);
+			strcat(_rootTopicPrefix, _classicName);
 
 			sprintf(_willTopic, "%s/tele/LWT", _rootTopicPrefix);
 			_mqttClient.setWill(_willTopic, 0, true, "Offline");
@@ -479,7 +503,7 @@ void WiFiEvent(WiFiEvent_t event)
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
-		logi("WiFi connected, IP address: %s", WiFi.localIP().toString().c_str());
+		Serial.printf("{\"IP\":\"%s\"}", WiFi.localIP().toString().c_str()); // send json to flash tool
 		xTimerStart(mqttReconnectTimer, 0); // connect to MQTT once we have wifi
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -567,7 +591,8 @@ void setup()
 	}
 	else
 	{
-		_iotWebConf.setApTimeoutMs(AP_TIMEOUT);
+		// _iotWebConf.setApTimeoutMs(AP_TIMEOUT);
+		_iotWebConf.skipApStartup(); // Set WIFI_AP_PIN to gnd to force AP mode
 		_mqttClient.onConnect(onMqttConnect);
 		_mqttClient.onDisconnect(onMqttDisconnect);
 		_mqttClient.onMessage(onMqttMessage);
@@ -592,11 +617,15 @@ void setup()
 			_pClassic->onError(modbusErrorCallback);
 		}
 	}
+
+	// IotWebConfParameter* p = _iotWebConf.getApPasswordParameter();
+	// logi("AP Password: %s", p->valueBuffer);
 	// Set up required URL handlers on the web server.
 	_webServer.on("/", handleRoot);
 	_webServer.on("/config", [] { _iotWebConf.handleConfig(); });
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
 	_lastPublishTimeStamp = millis() + MODBUS_POLL_RATE;
+	init_watchdog();
 	logi("Done setup");
 }
 
@@ -615,6 +644,7 @@ void loop()
 				_registers[0].received = false; // repeat readings
 				_registers[1].received = false;
 			}
+			feed_watchdog();
 		}
 		if (_mqttClient.connected())
 		{
@@ -628,6 +658,39 @@ void loop()
 			{
 				_publishCount = 0;
 				_publishRate = SNOOZE_PUBLISH_RATE;
+			}
+		}
+	}
+	else
+	{
+		if (Serial.read() == '{')
+		{
+			String s = "{";
+			s += Serial.readStringUntil('}');
+			s += "}";
+			StaticJsonDocument<128> doc;
+			DeserializationError err = deserializeJson(doc, s);
+			if (err)
+			{
+				loge("deserializeJson() failed: %s", err.c_str());
+			}
+			else
+			{
+				if (doc.containsKey("ssid") && doc.containsKey("password"))
+				{
+					IotWebConfParameter *p = _iotWebConf.getWifiSsidParameter();
+					strcpy(p->valueBuffer, doc["ssid"]);
+					logi("Setting ssid: %s", p->valueBuffer);
+					p = _iotWebConf.getWifiPasswordParameter();
+					strcpy(p->valueBuffer, doc["password"]);
+					logi("Setting password: %s", p->valueBuffer);
+					_iotWebConf.configSave();
+					resetModule();
+				}
+				else
+				{
+					logi("Received invalid json: %s", s.c_str());
+				}
 			}
 		}
 	}
