@@ -3,7 +3,7 @@
 </p>
 
 
-A flashing tool for ClassicMQTT. With the great [ESPtool](https://github.com/espressif/esptool) from Espressif under the hood, and all required settings by default.
+A flashing tool for ClassicMQTT, uses the [ESPtool](https://github.com/espressif/esptool) from Espressif under the hood, and all required settings by default.
 
 ## Features
 
@@ -11,9 +11,11 @@ A flashing tool for ClassicMQTT. With the great [ESPtool](https://github.com/esp
  
  - Send configuration to flashed device via serial: one-click configure of Wifi. 
 
-## Installation and how to run
+## How to run
 
-Todo
+Download and extract ZIP package from https://github.com/graham22/ClassicMQTT
+cd to setup folder
+run flasher.exe
    
  
 ## Screenshots
