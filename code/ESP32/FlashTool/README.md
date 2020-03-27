@@ -14,7 +14,7 @@ A flashing tool for ClassicMQTT, uses the [ESPtool](https://github.com/espressif
 ## How to run
 
 Download and extract ZIP package from https://github.com/graham22/ClassicMQTT
-cd to setup folder
+cd to code\ESP32 folder
 run flasher.exe
    
  
