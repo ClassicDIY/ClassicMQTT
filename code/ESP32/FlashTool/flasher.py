@@ -94,7 +94,7 @@ class SendConfigDialog(QDialog):
 
         if (len(self.leAP.text()) == 0 or len(self.leAPPwd.text()) == 0):
             ok = False
-            QMessageBox.warning(self, "WiFi details incomplete", "Input WiFi AP and Password")
+            QMessageBox.warning(self, "WiFi details incomplete", "Input WiFi SSID and Password")
         if ok:
             x = {"ssid": self.leAP.text(), "password": self.leAPPwd.text() }
             self.commands = json.dumps(x)
@@ -128,7 +128,7 @@ class FlashingDialog(QDialog):
         self.erase_timer.setSingleShot(False)
         self.erase_timer.timeout.connect(self.erase_progress)
         self.btns = QDialogButtonBox(QDialogButtonBox.Abort)
-        self.dlgText = QLabel("Press and hold Boot button to start flashing process")
+        self.dlgText = QLabel("Press the Boot button for a few seconds to start the flashing process")
         vl.addWidgets([self.dlgText, self.task, self.progress_task, self.btns])
         self.btns.rejected.connect(self.abort)
         # process starts
@@ -212,6 +212,8 @@ class Flasher(QDialog):
         self.release_data = b""
         self.createUI()
         self.refreshPorts()
+        self.jsonStart = False
+        self.jsonBuffer = ""
 
     def createUI(self):
         vl = VLayout()
@@ -244,7 +246,7 @@ class Flasher(QDialog):
         self.pbFlash = QPushButton("Flash!")
         self.pbFlash.setFixedHeight(50)
         self.pbFlash.setStyleSheet("background-color: #223579;")
-        self.pbConfig = QPushButton("Send config")
+        self.pbConfig = QPushButton("Setup WIFI")
         self.pbConfig.setStyleSheet("background-color: #571054;")
         self.pbConfig.setFixedHeight(50)
         self.pbQuit = QPushButton("Quit")
@@ -284,19 +286,42 @@ class Flasher(QDialog):
         if dlg.exec_() == QDialog.Accepted:
             if dlg.commands:
                 try:
-                    self.port = QSerialPort(self.cbxPort.currentData())
-                    self.port.setBaudRate(115200)
-                    self.port.open(QIODevice.ReadWrite)
-                    bytes_sent = self.port.write(bytes(dlg.commands, 'utf8'))
+                    self.serial = QSerialPort(self.cbxPort.currentData())
+                    self.serial.setBaudRate(115200)
+                    self.serial.open(QIODevice.ReadWrite)
+                    self.serial.readyRead.connect(self.on_serial_read)
+                    bytes_sent = self.serial.write(bytes(dlg.commands, 'utf8'))
                 except Exception as e:
                     QMessageBox.critical(self, "COM Port error", e)
                 else:
-                    if self.port.isOpen():
-                        self.thread = TestThread(self.port)
-                        self.thread.start()
-                    QMessageBox.information(self, "Done", "Use admin/<AP password> (default: ClassicMQTT) to enter configuration page")
+                    QMessageBox.information(self, "Done", "Use admin/ClassicMQTT to enter configuration page")
+                    self.serial.close()
             else:
                 QMessageBox.information(self, "Done", "Nothing to send")
+
+    def on_serial_read(self):
+        self.process_bytes(bytes(self.serial.readAll()))
+
+    def process_bytes(self, bs):
+        text = bs.decode('ascii')
+        print("!Received: " + text)
+        try:
+            for b in text:
+                if b == '{':  # start json
+                    self.jsonStart = True
+                    print("start JSON")
+                if self.jsonStart == True:
+                    self.jsonBuffer += b
+                if b == '}':  # end json
+                    self.jsonStart = False
+                    print("found JSON")
+                    print(self.jsonBuffer)
+                    obj = json.loads(self.jsonBuffer)
+                    url = "http://" + obj["IP"]
+                    print("url:" + url)
+                    webbrowser.get().open(url)
+        except Exception as e:
+            print("JSON error", e)
 
     def start_process(self):
         ok = True
@@ -311,7 +336,7 @@ class Flasher(QDialog):
         if ok:
             dlg = FlashingDialog(self)
             if dlg.exec_() == QDialog.Accepted:
-                QMessageBox.information(self, "Done", "Flashing successful! Power cycle the device.")
+                QMessageBox.information(self, "Done", "Flashing successful! Now Setup Wifi.")
             else:
                 if dlg.error_msg:
                     QMessageBox.critical(self, "Error", dlg.error_msg)
@@ -325,30 +350,6 @@ class Flasher(QDialog):
         delta = e.globalPos() - self.old_pos
         self.move(self.x() + delta.x(), self.y() + delta.y())
         self.old_pos = e.globalPos()
-
-class TestThread(QThread):
-    def __init__(self, port):
-        super().__init__()
-        self.port = port
-
-    def run(self):
-        while self.port.isOpen():
-            QThread.sleep(3)
-            # value = self.port.readline().decode('ascii')
-            val = self.port.read(64).decode('utf-8')
-            print("!Received: " + val)
-            try:
-                firstValue = val.index("{")
-                lastValue = len(val) - val[::-1].index("}")
-                jsonString = val[firstValue:lastValue]
-                print(jsonString)
-                obj = json.loads(jsonString)
-                url = "http://" + obj["IP"]
-                webbrowser.get().open(url)
-            except ValueError:
-                print("error loading JSON")
-            print("!done")
-            self.port.close()
 
 def main():
     app = QApplication(sys.argv)

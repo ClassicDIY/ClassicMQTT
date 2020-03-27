@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <EEPROM.h>
 #include "IotWebConf.h"
 #include <ArduinoJson.h>
 #include "AsyncMqttClient.h"
@@ -49,6 +50,7 @@ unsigned long _lastModbusPollTimeStamp = 0;
 unsigned long _publishRate = SNOOZE_PUBLISH_RATE;
 int _publishCount = 0;
 
+bool _clientsConfigured = false;
 bool mqttReadingsAvailable = false;
 bool boilerPlateInfoPublished = false;
 uint8_t boilerPlateReadBitField = 0;
@@ -206,7 +208,7 @@ void readModbus()
 		{
 			if (_pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].byteCount) != 0)
 			{
-				logi("Requesting %d for %d bytes\n", _registers[_currentRegister].address, _registers[_currentRegister].byteCount);
+				logd("Requesting %d for %d bytes\n", _registers[_currentRegister].address, _registers[_currentRegister].byteCount);
 			}
 			else
 			{
@@ -391,7 +393,7 @@ void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode func
 
 void onMqttConnect(bool sessionPresent)
 {
-	logi("Connected to MQTT. Session present: %d", sessionPresent);
+	logd("Connected to MQTT. Session present: %d", sessionPresent);
 	char buf[64];
 	sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 	_mqttClient.subscribe(buf, 0);
@@ -427,8 +429,8 @@ void connectToMqtt()
 			_mqttClient.setWill(_willTopic, 0, true, "Offline");
 			_mqttClient.connect();
 
-			logi("_mqttRootTopic: %s", _mqttRootTopic);
-			logi("rootTopicPrefix: %s", _rootTopicPrefix);
+			logd("_mqttRootTopic: %s", _mqttRootTopic);
+			logd("rootTopicPrefix: %s", _rootTopicPrefix);
 		}
 	}
 }
@@ -499,11 +501,11 @@ boolean formValidator()
 
 void WiFiEvent(WiFiEvent_t event)
 {
-	logi("[WiFi-event] event: %d", event);
+	logd("[WiFi-event] event: %d", event);
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
-		Serial.printf("{\"IP\":\"%s\"}", WiFi.localIP().toString().c_str()); // send json to flash tool
+		Serial.printf("{\"IP\":\"%s\"}\n", WiFi.localIP().toString().c_str()); // send json to flash tool
 		xTimerStart(mqttReconnectTimer, 0); // connect to MQTT once we have wifi
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
@@ -554,11 +556,8 @@ void setup()
 	{
 		; // wait for serial port to connect. Needed for native USB port only
 	}
-	logi("Booting");
-	pinMode(WIFI_AP_PIN, INPUT_PULLUP);
-	pinMode(WIFI_STATUS_PIN, OUTPUT);
-	mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(5000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
-	WiFi.onEvent(WiFiEvent);
+	logd("Booting");
+	pinMode(FACTORY_RESET_PIN, INPUT_PULLUP);
 	_iotWebConf.setStatusPin(WIFI_STATUS_PIN);
 	_iotWebConf.setConfigPin(WIFI_AP_PIN);
 	// setup EEPROM parameters
@@ -576,10 +575,23 @@ void setup()
 	_iotWebConf.setConfigSavedCallback(&configSaved);
 	_iotWebConf.setFormValidator(&formValidator);
 	_iotWebConf.setupUpdateServer(&_httpUpdater);
+	if (digitalRead(FACTORY_RESET_PIN) == LOW)
+	{
+		EEPROM.begin(IOTWEBCONF_CONFIG_START + IOTWEBCONF_CONFIG_VERSION_LENGTH );
+		for (byte t = 0; t < IOTWEBCONF_CONFIG_VERSION_LENGTH; t++)
+		{
+			EEPROM.write(IOTWEBCONF_CONFIG_START + t, 0);
+		}
+		EEPROM.commit();
+		EEPROM.end();
+		logw("Factory Reset!");
+	}
+	mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(5000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
+	WiFi.onEvent(WiFiEvent);
 	boolean validConfig = _iotWebConf.init();
 	if (!validConfig)
 	{
-		loge("!invalid configuration!");
+		logw("!invalid configuration!");
 		_classicIP[0] = '\0';
 		_classicPort[0] = '\0';
 		_mqttServer[0] = '\0';
@@ -591,30 +603,34 @@ void setup()
 	}
 	else
 	{
-		// _iotWebConf.setApTimeoutMs(AP_TIMEOUT);
 		_iotWebConf.skipApStartup(); // Set WIFI_AP_PIN to gnd to force AP mode
-		_mqttClient.onConnect(onMqttConnect);
-		_mqttClient.onDisconnect(onMqttDisconnect);
-		_mqttClient.onMessage(onMqttMessage);
-		_mqttClient.onPublish(onMqttPublish);
+		if (_classicIP[0] != '\0' && _mqttServer[0] != '\0') // skip if factory reset
+		{
+			logi("Valid configuration!");
+			_clientsConfigured = true;
+			_mqttClient.onConnect(onMqttConnect);
+			_mqttClient.onDisconnect(onMqttDisconnect);
+			_mqttClient.onMessage(onMqttMessage);
+			_mqttClient.onPublish(onMqttPublish);
 
-		IPAddress ip;
-		int port = atoi(_mqttPort);
-		if (ip.fromString(_mqttServer))
-		{
-			_mqttClient.setServer(ip, port);
-		}
-		else
-		{
-			_mqttClient.setServer(_mqttServer, port);
-		}
-		_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
-		if (ip.fromString(_classicIP))
-		{
-			int port = atoi(_classicPort);
-			_pClassic = new esp32ModbusTCP(10, ip, port);
-			_pClassic->onData(modbusCallback);
-			_pClassic->onError(modbusErrorCallback);
+			IPAddress ip;
+			int port = atoi(_mqttPort);
+			if (ip.fromString(_mqttServer))
+			{
+				_mqttClient.setServer(ip, port);
+			}
+			else
+			{
+				_mqttClient.setServer(_mqttServer, port);
+			}
+			_mqttClient.setCredentials(_mqttUserName, _mqttUserPassword);
+			if (ip.fromString(_classicIP))
+			{
+				int port = atoi(_classicPort);
+				_pClassic = new esp32ModbusTCP(10, ip, port);
+				_pClassic->onData(modbusCallback);
+				_pClassic->onError(modbusErrorCallback);
+			}
 		}
 	}
 
@@ -626,13 +642,13 @@ void setup()
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
 	_lastPublishTimeStamp = millis() + MODBUS_POLL_RATE;
 	init_watchdog();
-	logi("Done setup");
+	logd("Done setup");
 }
 
 void loop()
 {
 	_iotWebConf.doLoop();
-	if (WiFi.isConnected())
+	if (_clientsConfigured && WiFi.isConnected())
 	{
 		if (_lastModbusPollTimeStamp < millis())
 		{
@@ -663,10 +679,9 @@ void loop()
 	}
 	else
 	{
-		if (Serial.read() == '{')
+		if (Serial.peek() == '{')
 		{
-			String s = "{";
-			s += Serial.readStringUntil('}');
+			String s = Serial.readStringUntil('}');
 			s += "}";
 			StaticJsonDocument<128> doc;
 			DeserializationError err = deserializeJson(doc, s);
@@ -680,18 +695,24 @@ void loop()
 				{
 					IotWebConfParameter *p = _iotWebConf.getWifiSsidParameter();
 					strcpy(p->valueBuffer, doc["ssid"]);
-					logi("Setting ssid: %s", p->valueBuffer);
+					logd("Setting ssid: %s", p->valueBuffer);
 					p = _iotWebConf.getWifiPasswordParameter();
 					strcpy(p->valueBuffer, doc["password"]);
-					logi("Setting password: %s", p->valueBuffer);
+					logd("Setting password: %s", p->valueBuffer);
+					p = _iotWebConf.getApPasswordParameter();
+					strcpy(p->valueBuffer, TAG); // reset to default AP password
 					_iotWebConf.configSave();
 					resetModule();
 				}
 				else
 				{
-					logi("Received invalid json: %s", s.c_str());
+					logw("Received invalid json: %s", s.c_str());
 				}
 			}
+		}
+		else
+		{
+			Serial.read(); // discard data
 		}
 	}
 }
