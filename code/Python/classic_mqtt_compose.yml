@@ -33,6 +33,7 @@ services:
     # CLASSIC_NAME=<Name of you Classic usually "classic">
     # CLASSIC=<IP address or URL>
     # CLASSIC_PORT=<Port usually 502>
+    # CLASSIC_NAME=<Name used in Android App>
     # MQTT_ROOT=<The MQTT Root, usually ClassicMQTT>
     # MQTT_USER=ClassicPublisher
     # MQTT_PASS=ClassicPub123
@@ -44,6 +45,7 @@ services:
     # the following command to re-build it before running it again.
     # docker-compose -f classic_mqtt_compose.yml build
     #
+
     command: "--classic_name ${CLASSIC_NAME} --classic ${CLASSIC} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${MQTT_ROOT} --mqtt_user ${MQTT_USER} --mqtt_pass ${MQTT_PASS}"
 networks:
   localnet:

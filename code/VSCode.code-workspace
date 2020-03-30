@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "ESP32\\ClassicMQTT"
+		},
+		{
+			"path": "ESP32\\FlashTool"
+		}
+	]
+}
