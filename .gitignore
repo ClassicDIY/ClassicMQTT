@@ -30,3 +30,5 @@
 *.exe
 *.out
 *.app
+code/Python/Larry.env
+code/Python/classic_mqtt_compose _larry.yml
