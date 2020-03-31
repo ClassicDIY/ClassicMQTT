@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "ESP32\\FlashTool"
+		},
+		{
+			"path": "Python"
 		}
 	]
 }

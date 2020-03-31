@@ -299,6 +299,7 @@ void modbusErrorCallback(uint16_t packetId, MBError error)
 void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode functionCode, uint8_t *data, uint16_t byteCount)
 {
 	logd("packetId[0x%x], slaveAddress[0x%x], functionCode[0x%x], byteCount[%d]", packetId, slaveAddress, functionCode, byteCount);
+	feed_watchdog();
 	SetBankReceived(byteCount);
 	if (byteCount == 88)
 	{
@@ -660,7 +661,6 @@ void loop()
 				_registers[0].received = false; // repeat readings
 				_registers[1].received = false;
 			}
-			feed_watchdog();
 		}
 		if (_mqttClient.connected())
 		{
@@ -679,6 +679,7 @@ void loop()
 	}
 	else
 	{
+		feed_watchdog(); // don't reset when not configured
 		if (Serial.peek() == '{')
 		{
 			String s = Serial.readStringUntil('}');
