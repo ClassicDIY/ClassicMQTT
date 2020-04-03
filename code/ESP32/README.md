@@ -6,6 +6,4 @@
 
 <p>
 Please refer to the <a href="https://https://github.com/ClassicDIY/ClassicMQTT/wiki/2.-ESP32-Classic-MQTT-Publisher">ClassicMQTT wiki</a> for more information.
-</p>>
-
-(c) 2020 Graham Ross https://github.com/graham22
+</p>
