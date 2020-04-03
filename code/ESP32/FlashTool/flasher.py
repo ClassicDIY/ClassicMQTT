@@ -336,7 +336,7 @@ class Flasher(QDialog):
         if ok:
             dlg = FlashingDialog(self)
             if dlg.exec_() == QDialog.Accepted:
-                QMessageBox.information(self, "Done", "Flashing successful! Now Setup Wifi.")
+                QMessageBox.information(self, "Done", "Flashing successful! Press the reset button.")
             else:
                 if dlg.error_msg:
                     QMessageBox.critical(self, "Error", dlg.error_msg)
