@@ -8,7 +8,9 @@ Classic Monitor is NOT a product of Midnite solar, nor do they support this appl
 </p>
 
 <p>
-The code for the ClassicMQTT publisher has been implemented for the <a href="https://www.amazon.ca/Development-Wireless-Module-Bluetooth-Arduino/dp/B07HG5XHLB/ref=sr_1_7?crid=2TVCRO81CV0D4&keywords=esp32+development+board&qid=1580566571&sprefix=esp32%2Caps%2C367&sr=8-7">ESP32 dev board</a> and for the <a href="https://www.raspberrypi.org/products/raspberry-pi-4-model-b/">Raspberry Pi</a>.
+The code for the ClassicMQTT publisher has been implemented for the 
+<a href="https://github.com/ClassicDIY/ClassicMQTT/tree/master/code/ESP32">ESP32 dev board</a> and for the 
+<a href="https://github.com/ClassicDIY/ClassicMQTT/tree/master/code/Python">Raspberry Pi</a>.
 </p>
 
 <p align="center">
@@ -17,7 +19,7 @@ The code for the ClassicMQTT publisher has been implemented for the <a href="htt
 </p>
 
 <p>
-Please refer to the <a href="https://github.com/graham22/ClassicMQTT/wiki">ClassicMQTT wiki</a> for more information.
+Please refer to the <a href="https://github.com/ClassicDIY/ClassicMQTT/wiki/1.-Home">ClassicMQTT wiki</a> for more information.
 </p>
 
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
