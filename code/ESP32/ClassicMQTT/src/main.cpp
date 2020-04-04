@@ -9,12 +9,11 @@
 #include "Log.h"
 #include "ChargeControllerInfo.h"
 
-#define MODBUS_POLL_RATE 5000
-#define WAKE_PUBLISH_RATE 5000
+#define WAKE_PUBLISH_RATE 2000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.2.5"
-#define PORT_CONFIG_LEN 6
+#define CONFIG_VERSION "V1.3"
+#define NUMBER_CONFIG_LEN 6
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
 AsyncMqttClient _mqttClient;
@@ -26,28 +25,30 @@ IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 hw_timer_t *_watchdogTimer = NULL;
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
-char _classicPort[PORT_CONFIG_LEN];
+char _classicPort[NUMBER_CONFIG_LEN];
 char _classicName[IOTWEBCONF_WORD_LEN];
 char _mqttServer[IOTWEBCONF_WORD_LEN];
-char _mqttPort[PORT_CONFIG_LEN];
+char _mqttPort[NUMBER_CONFIG_LEN];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
 char _mqttRootTopic[64];
+char _wakePublishRate[NUMBER_CONFIG_LEN];
 char _willTopic[64];
 char _rootTopicPrefix[64];
 IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, PORT_CONFIG_LEN, "text", NULL, "502");
+IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, NUMBER_CONFIG_LEN, "text", NULL, "502");
 IotWebConfParameter classicNameParam = IotWebConfParameter("Classic Name", "classicName", _classicName, IOTWEBCONF_WORD_LEN);
 IotWebConfSeparator MQTT_seperatorParam = IotWebConfSeparator("MQTT");
 IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, PORT_CONFIG_LEN, "text", NULL, "1883");
+IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, NUMBER_CONFIG_LEN, "text", NULL, "1883");
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
 IotWebConfParameter mqttRootTopicParam = IotWebConfParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
+IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate", "wakePublishRate", _wakePublishRate, NUMBER_CONFIG_LEN, "text", NULL, "2");
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
-unsigned long _publishRate = SNOOZE_PUBLISH_RATE;
+unsigned long _currentPublishRate = SNOOZE_PUBLISH_RATE;
 int _publishCount = 0;
 
 bool _clientsConfigured = false;
@@ -59,12 +60,18 @@ esp32ModbusTCP *_pClassic;
 int _currentRegister = 0;
 
 #define numBanks (sizeof(_registers) / sizeof(ModbusRegisterBank))
+void modbus4100(uint8_t *data);
+void modbus4360(uint8_t *data);
+void modbus4163(uint8_t *data);
+void modbus4243(uint8_t *data);
+void modbus16386(uint8_t *data);
+
 ModbusRegisterBank _registers[] = {
-	{false, 4100, 44},
-	{false, 4360, 22},
-	{false, 4163, 2},
-	{false, 4243, 32},
-	{false, 16386, 4}};
+	{false, 4100, 44, modbus4100},
+	{false, 4360, 22, modbus4360},
+	{false, 4163, 2, modbus4163},
+	{false, 4243, 32, modbus4243},
+	{false, 16386, 4, modbus16386}};
 
 void IRAM_ATTR resetModule()
 {
@@ -202,45 +209,37 @@ boolean GetFlagValue(int index, uint16_t mask, uint8_t *data)
 
 void readModbus()
 {
-	if (_currentRegister < numBanks)
+	boolean done = false;
+	while (!done)
 	{
-		if (_registers[_currentRegister].received == false)
+		if (_currentRegister < numBanks)
 		{
-			if (_pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].byteCount) != 0)
+			if (_registers[_currentRegister].received == false)
 			{
-				logd("Requesting %d for %d bytes\n", _registers[_currentRegister].address, _registers[_currentRegister].byteCount);
+				if (_pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters) != 0)
+				{
+					logd("Requesting %d for %d registers", _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+				}
+				else
+				{
+					loge("Request %d failed\n", _registers[_currentRegister].address);
+				}
+				done = true;
 			}
-			else
-			{
-				loge("Request %d failed\n", _registers[_currentRegister].address);
-			}
+			_currentRegister++;
 		}
-		_currentRegister++;
+		else
+		{
+			_currentRegister = 0;
+			_registers[0].received = false; // repeat readings
+			_registers[1].received = false;
+		}
 	}
 }
-
-void SetBankReceived(uint16_t byteCount)
-{
-	int regCount = byteCount / 2;
-	for (int i = 0; i < numBanks; i++)
-	{
-		if (_registers[i].byteCount == regCount)
-		{
-			_registers[i].received = true;
-		}
-	}
-}
-
-//void ClearAllReceived() {
-//	boilerPlateReadBitField = 0;
-//	for (int i = 0; i < numBanks; i++) {
-//		_registers[i].received = false;
-//	}
-//}
 
 void Wake()
 {
-	_publishRate = WAKE_PUBLISH_RATE;
+	_currentPublishRate = atoi(_wakePublishRate) * 1000;
 	_lastPublishTimeStamp = 0;
 	_lastModbusPollTimeStamp = 0;
 }
@@ -296,98 +295,110 @@ void modbusErrorCallback(uint16_t packetId, MBError error)
 	loge("packetId[0x%x], error[%s]", packetId, text);
 }
 
+void modbus4100 (uint8_t *data) 
+{
+	_chargeControllerInfo.BatVoltage = GetFloatValue(14, data, 10.0);
+	_chargeControllerInfo.PVVoltage = GetFloatValue(15, data, 10.0);
+	_chargeControllerInfo.BatCurrent = GetFloatValue(16, data, 10.0);
+	_chargeControllerInfo.EnergyToday = GetFloatValue(17, data, 10.0);
+	_chargeControllerInfo.Power = GetFloatValue(18, data);
+	_chargeControllerInfo.ChargeState = GetMSBValue(19, data);
+	_chargeControllerInfo.PVCurrent = GetFloatValue(20, data, 10.0);
+	_chargeControllerInfo.TotalEnergy = Getuint32Value(25, data) / 10.0;
+	_chargeControllerInfo.InfoFlagsBits = Getuint32Value(29, data);
+	_chargeControllerInfo.BatTemperature = GetFloatValue(31, data, 10.0);
+	_chargeControllerInfo.FETTemperature = GetFloatValue(32, data, 10.0);
+	_chargeControllerInfo.PCBTemperature = GetFloatValue(33, data, 10.0);
+	_chargeControllerInfo.FloatTimeTodaySeconds = Getuint16Value(37, data);
+	_chargeControllerInfo.AbsorbTime = Getuint16Value(38, data);
+	_chargeControllerInfo.EqualizeTime = Getuint16Value(42, data);
+	_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
+	_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
+
+	if ((boilerPlateReadBitField & 0x1) == 0)
+	{
+		boilerPlateReadBitField |= 0x1;
+		uint16_t reg1 = Getuint16Value(0, data);
+		char buf[32];
+		sprintf(buf, "Classic %d (rev %d)", reg1 & 0x00ff, reg1 >> 8);
+		_chargeControllerInfo.model = buf;
+		int buildYear = Getuint16Value(1, data);
+		int buildMonthDay = Getuint16Value(2, data);
+		sprintf(buf, "%d%02d%02d", buildYear, (buildMonthDay >> 8), (buildMonthDay & 0x00ff));
+		_chargeControllerInfo.buildDate = buf;
+		_chargeControllerInfo.lastVOC = GetFloatValue(21, data, 10.0);
+		_chargeControllerInfo.unitID = Getuint32Value(10, data);
+		short reg6 = Getuint16Value(5, data);
+		short reg7 = Getuint16Value(6, data);
+		short reg8 = Getuint16Value(7, data);
+		char mac[32];
+		sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x", reg8 >> 8, reg8 & 0x00ff, reg7 >> 8, reg7 & 0x00ff, reg6 >> 8, reg6 & 0x00ff);
+		_chargeControllerInfo.macAddress = mac;
+	}
+}
+
+void modbus4360(uint8_t *data)// whizbang readings
+{ 
+	_chargeControllerInfo.PositiveAmpHours = Getuint32Value(4, data);
+	_chargeControllerInfo.NegativeAmpHours = abs(Getuint32Value(6, data));
+	_chargeControllerInfo.NetAmpHours = 0; //Getint32Value(8, data); // todo causing deserialization exception in android
+	_chargeControllerInfo.ShuntTemperature = (Getuint16Value(11, data) & 0x00ff) - 50.0f;
+	_chargeControllerInfo.WhizbangBatCurrent = GetFloatValue(10, data, 10.0);
+	_chargeControllerInfo.SOC = Getuint16Value(12, data);
+	_chargeControllerInfo.RemainingAmpHours = Getuint16Value(16, data);
+	_chargeControllerInfo.TotalAmpHours = Getuint16Value(20, data);
+}
+
+void modbus4163(uint8_t *data) // boilerplate data
+{
+	if ((boilerPlateReadBitField & 0x02) == 0)
+	{
+		boilerPlateReadBitField |= 0x02;
+		_chargeControllerInfo.mpptMode = Getuint16Value(0, data);
+		int Aux12FunctionS = (Getuint16Value(1, data) & 0x3f00) >> 8;
+		_chargeControllerInfo.hasWhizbang = Aux12FunctionS == 18;
+	}
+}
+void modbus4243(uint8_t *data)
+{
+	if ((boilerPlateReadBitField & 0x04) == 0)
+	{
+		boilerPlateReadBitField |= 0x04;
+		_chargeControllerInfo.VbattRegSetPTmpComp = GetFloatValue(0, data, 10.0);
+		_chargeControllerInfo.nominalBatteryVoltage = Getuint16Value(1, data);
+		_chargeControllerInfo.endingAmps = GetFloatValue(2, data, 10.0);
+		_chargeControllerInfo.ReasonForResting = Getuint16Value(31, data);
+	}
+}
+void modbus16386(uint8_t *data)
+{
+	if ((boilerPlateReadBitField & 0x08) == 0)
+	{
+		boilerPlateReadBitField |= 0x08;
+		short reg16387 = Getuint16Value(0, data);
+		short reg16388 = Getuint16Value(1, data);
+		short reg16389 = Getuint16Value(2, data);
+		short reg16390 = Getuint16Value(3, data);
+		char unit[16];
+		snprintf_P(unit, sizeof(unit), "%d", (reg16388 << 16) + reg16387);
+		_chargeControllerInfo.appVersion = unit;
+		snprintf_P(unit, sizeof(unit), "%d", (reg16390 << 16) + reg16389);
+		_chargeControllerInfo.netVersion = unit;
+	}
+}
+
 void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode functionCode, uint8_t *data, uint16_t byteCount)
 {
-	logd("packetId[0x%x], slaveAddress[0x%x], functionCode[0x%x], byteCount[%d]", packetId, slaveAddress, functionCode, byteCount);
-	feed_watchdog();
-	SetBankReceived(byteCount);
-	if (byteCount == 88)
+	int regCount = byteCount / 2;
+	logd("packetId[0x%x], slaveAddress[0x%x], functionCode[0x%x], numberOfRegisters[%d]", packetId, slaveAddress, functionCode, regCount);
+	for (int i = 0; i < numBanks; i++)
 	{
-		_chargeControllerInfo.BatVoltage = GetFloatValue(14, data, 10.0);
-		_chargeControllerInfo.PVVoltage = GetFloatValue(15, data, 10.0);
-		_chargeControllerInfo.BatCurrent = GetFloatValue(16, data, 10.0);
-		_chargeControllerInfo.EnergyToday = GetFloatValue(17, data, 10.0);
-		_chargeControllerInfo.Power = GetFloatValue(18, data);
-		_chargeControllerInfo.ChargeState = GetMSBValue(19, data);
-		_chargeControllerInfo.PVCurrent = GetFloatValue(20, data, 10.0);
-		_chargeControllerInfo.TotalEnergy = Getuint32Value(25, data) / 10.0;
-		_chargeControllerInfo.InfoFlagsBits = Getuint32Value(29, data);
-		_chargeControllerInfo.BatTemperature = GetFloatValue(31, data, 10.0);
-		_chargeControllerInfo.FETTemperature = GetFloatValue(32, data, 10.0);
-		_chargeControllerInfo.PCBTemperature = GetFloatValue(33, data, 10.0);
-		_chargeControllerInfo.FloatTimeTodaySeconds = Getuint16Value(37, data);
-		_chargeControllerInfo.AbsorbTime = Getuint16Value(38, data);
-		_chargeControllerInfo.EqualizeTime = Getuint16Value(42, data);
-		_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
-		_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
-
-		if ((boilerPlateReadBitField & 0x1) == 0)
+		if (_registers[i].numberOfRegisters == regCount)
 		{
-			boilerPlateReadBitField |= 0x1;
-			uint16_t reg1 = Getuint16Value(0, data);
-			char buf[32];
-			sprintf(buf, "Classic %d (rev %d)", reg1 & 0x00ff, reg1 >> 8);
-			_chargeControllerInfo.model = buf;
-			int buildYear = Getuint16Value(1, data);
-			int buildMonthDay = Getuint16Value(2, data);
-			sprintf(buf, "%d%02d%02d", buildYear, (buildMonthDay >> 8), (buildMonthDay & 0x00ff));
-			_chargeControllerInfo.buildDate = buf;
-			_chargeControllerInfo.lastVOC = GetFloatValue(21, data, 10.0);
-			_chargeControllerInfo.unitID = Getuint32Value(10, data);
-			short reg6 = Getuint16Value(5, data);
-			short reg7 = Getuint16Value(6, data);
-			short reg8 = Getuint16Value(7, data);
-			char mac[32];
-			sprintf(mac, "%02x:%02x:%02x:%02x:%02x:%02x", reg8 >> 8, reg8 & 0x00ff, reg7 >> 8, reg7 & 0x00ff, reg6 >> 8, reg6 & 0x00ff);
-			_chargeControllerInfo.macAddress = mac;
-		}
-	}
-	else if (byteCount == 44)
-	{ // whizbang readings
-		_chargeControllerInfo.PositiveAmpHours = Getuint32Value(4, data);
-		_chargeControllerInfo.NegativeAmpHours = abs(Getuint32Value(6, data));
-		_chargeControllerInfo.NetAmpHours = 0; //Getint32Value(8, data); // todo causing deserialization exception in android
-		_chargeControllerInfo.ShuntTemperature = (Getuint16Value(11, data) & 0x00ff) - 50.0f;
-		_chargeControllerInfo.WhizbangBatCurrent = GetFloatValue(10, data, 10.0);
-		_chargeControllerInfo.SOC = Getuint16Value(12, data);
-		_chargeControllerInfo.RemainingAmpHours = Getuint16Value(16, data);
-		_chargeControllerInfo.TotalAmpHours = Getuint16Value(20, data);
-	}
-	else if (byteCount == 4)
-	{ // boilerplate data
-		if ((boilerPlateReadBitField & 0x02) == 0)
-		{
-			boilerPlateReadBitField |= 0x02;
-			_chargeControllerInfo.mpptMode = Getuint16Value(0, data);
-			int Aux12FunctionS = (Getuint16Value(1, data) & 0x3f00) >> 8;
-			_chargeControllerInfo.hasWhizbang = Aux12FunctionS == 18;
-		}
-	}
-	else if (byteCount == 64)
-	{
-		if ((boilerPlateReadBitField & 0x04) == 0)
-		{
-			boilerPlateReadBitField |= 0x04;
-			_chargeControllerInfo.VbattRegSetPTmpComp = GetFloatValue(0, data, 10.0);
-			_chargeControllerInfo.nominalBatteryVoltage = Getuint16Value(1, data);
-			_chargeControllerInfo.endingAmps = GetFloatValue(2, data, 10.0);
-			_chargeControllerInfo.ReasonForResting = Getuint16Value(31, data);
-		}
-	}
-	else if (byteCount == 8)
-	{
-		if ((boilerPlateReadBitField & 0x08) == 0)
-		{
-			boilerPlateReadBitField |= 0x08;
-			short reg16387 = Getuint16Value(0, data);
-			short reg16388 = Getuint16Value(1, data);
-			short reg16389 = Getuint16Value(2, data);
-			short reg16390 = Getuint16Value(3, data);
-			char unit[16];
-			snprintf_P(unit, sizeof(unit), "%d", (reg16388 << 16) + reg16387);
-			_chargeControllerInfo.appVersion = unit;
-			snprintf_P(unit, sizeof(unit), "%d", (reg16390 << 16) + reg16389);
-			_chargeControllerInfo.netVersion = unit;
+			_registers[i].received = true; // received data for this set of registers
+			_registers[i].func(data);
+			feed_watchdog();
+			break;
 		}
 	}
 }
@@ -399,6 +410,8 @@ void onMqttConnect(bool sessionPresent)
 	sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 	_mqttClient.subscribe(buf, 0);
 	_mqttClient.publish(_willTopic, 0, false, "Online");
+	boilerPlateInfoPublished = false;
+	Wake();
 	logi("Subscribed to [%s], qos: 0", buf);
 }
 
@@ -478,6 +491,10 @@ void handleRoot()
 	s += "<li>MQTT root topic: ";
 	s += _mqttRootTopic;
 	s += "</ul>";
+	s += "<ul>";
+	s += "<li>Publish Rate : ";
+	s += _wakePublishRate;
+	s += " (S)</ul>";
 	s += "Go to <a href='config'>configure page</a> to change values.";
 	s += "</body></html>\n";
 	_webServer.send(200, "text/html", s);
@@ -495,6 +512,12 @@ boolean formValidator()
 	if (mqttServerParamLength == 0)
 	{
 		mqttServerParam.errorMessage = "MQTT server is required";
+		valid = false;
+	}
+	int rate = _webServer.arg(wakePublishRateParam.getId()).toInt();
+	if (rate < 1 || rate > 30)
+	{
+		wakePublishRateParam.errorMessage = "invalid publish rate.";
 		valid = false;
 	}
 	return valid;
@@ -571,6 +594,7 @@ void setup()
 	_iotWebConf.addParameter(&mqttUserNameParam);
 	_iotWebConf.addParameter(&mqttUserPasswordParam);
 	_iotWebConf.addParameter(&mqttRootTopicParam);
+	_iotWebConf.addParameter(&wakePublishRateParam);
 
 	// setup callbacks for IotWebConf
 	_iotWebConf.setConfigSavedCallback(&configSaved);
@@ -600,6 +624,7 @@ void setup()
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
 		_mqttRootTopic[0] = '\0';
+		_wakePublishRate[0] = '\0';
 		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
@@ -641,7 +666,7 @@ void setup()
 	_webServer.on("/", handleRoot);
 	_webServer.on("/config", [] { _iotWebConf.handleConfig(); });
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
-	_lastPublishTimeStamp = millis() + MODBUS_POLL_RATE;
+	_lastPublishTimeStamp = millis() + WAKE_PUBLISH_RATE;
 	init_watchdog();
 	logd("Done setup");
 }
@@ -653,27 +678,21 @@ void loop()
 	{
 		if (_lastModbusPollTimeStamp < millis())
 		{
-			_lastModbusPollTimeStamp = millis() + MODBUS_POLL_RATE;
+			_lastModbusPollTimeStamp = millis() + WAKE_PUBLISH_RATE;
 			readModbus();
-			if (_currentRegister >= numBanks)
-			{
-				_currentRegister = 0;
-				_registers[0].received = false; // repeat readings
-				_registers[1].received = false;
-			}
 		}
 		if (_mqttClient.connected())
 		{
 			if (_lastPublishTimeStamp < millis())
 			{
-				_lastPublishTimeStamp = millis() + _publishRate;
+				_lastPublishTimeStamp = millis() + _currentPublishRate;
 				_publishCount++;
 				publishReadings();
 			}
 			if (_publishCount >= WAKE_COUNT)
 			{
 				_publishCount = 0;
-				_publishRate = SNOOZE_PUBLISH_RATE;
+				_currentPublishRate = SNOOZE_PUBLISH_RATE;
 			}
 		}
 	}

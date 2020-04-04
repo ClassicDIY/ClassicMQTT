@@ -51,6 +51,7 @@ typedef struct
 {
 	bool received;
 	int address;
-	int byteCount;
+	int numberOfRegisters;
+	std::function<void(uint8_t *data)> func;
 } ModbusRegisterBank;
 
