@@ -9,10 +9,12 @@
 #include "Log.h"
 #include "ChargeControllerInfo.h"
 
+#define MAX_PUBLISH_RATE 30000
+#define MIN_PUBLISH_RATE 1000
 #define WAKE_PUBLISH_RATE 2000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.3"
+#define CONFIG_VERSION "V1.3.1" // major.minor.build (major or minor will invalidate the configuration)
 #define NUMBER_CONFIG_LEN 6
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
@@ -32,7 +34,7 @@ char _mqttPort[NUMBER_CONFIG_LEN];
 char _mqttUserName[IOTWEBCONF_WORD_LEN];
 char _mqttUserPassword[IOTWEBCONF_WORD_LEN];
 char _mqttRootTopic[64];
-char _wakePublishRate[NUMBER_CONFIG_LEN];
+char _wakePublishRateStr[NUMBER_CONFIG_LEN];
 char _willTopic[64];
 char _rootTopicPrefix[64];
 IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
@@ -44,17 +46,19 @@ IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort"
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
 IotWebConfParameter mqttRootTopicParam = IotWebConfParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate", "wakePublishRate", _wakePublishRate, NUMBER_CONFIG_LEN, "text", NULL, "2");
+IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
-unsigned long _currentPublishRate = SNOOZE_PUBLISH_RATE;
+unsigned long _currentPublishRate = WAKE_PUBLISH_RATE; // rate currently being used
+unsigned long _wakePublishRate = WAKE_PUBLISH_RATE; // wake publish rate set by config or mqtt command
+boolean _stayAwake = false;
 int _publishCount = 0;
 
 bool _clientsConfigured = false;
-bool mqttReadingsAvailable = false;
-bool boilerPlateInfoPublished = false;
-uint8_t boilerPlateReadBitField = 0;
+bool _mqttReadingsAvailable = false;
+bool _boilerPlateInfoPublished = false;
+uint8_t _boilerPlateReadBitField = 0;
 ChargeControllerInfo _chargeControllerInfo;
 esp32ModbusTCP *_pClassic;
 int _currentRegister = 0;
@@ -112,9 +116,9 @@ void publish(const char *subtopic, const char *value, boolean retained = false)
 void publishReadings()
 {
 	StaticJsonDocument<1024> root;
-	if ((boilerPlateReadBitField & 0x0f) == 0x0f && boilerPlateInfoPublished == false)
+	if ((_boilerPlateReadBitField & 0x0f) == 0x0f && _boilerPlateInfoPublished == false)
 	{
-		boilerPlateInfoPublished = true;
+		_boilerPlateInfoPublished = true;
 		root["unitID"] = _chargeControllerInfo.unitID;
 		root["deviceName"] = _classicName;
 		root["hasWhizbang"] = _chargeControllerInfo.hasWhizbang;
@@ -218,7 +222,7 @@ void readModbus()
 			{
 				if (_pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters) != 0)
 				{
-					logd("Requesting %d for %d registers", _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+					// logd("Requesting %d for %d registers", _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
 				}
 				else
 				{
@@ -239,9 +243,11 @@ void readModbus()
 
 void Wake()
 {
-	_currentPublishRate = atoi(_wakePublishRate) * 1000;
+	_currentPublishRate = _wakePublishRate;
 	_lastPublishTimeStamp = 0;
 	_lastModbusPollTimeStamp = 0;
+	_boilerPlateInfoPublished = false;
+	_publishCount = 0;
 }
 
 void modbusErrorCallback(uint16_t packetId, MBError error)
@@ -315,9 +321,9 @@ void modbus4100 (uint8_t *data)
 	_chargeControllerInfo.Aux1 = GetFlagValue(29, 0x4000, data);
 	_chargeControllerInfo.Aux2 = GetFlagValue(29, 0x8000, data);
 
-	if ((boilerPlateReadBitField & 0x1) == 0)
+	if ((_boilerPlateReadBitField & 0x1) == 0)
 	{
-		boilerPlateReadBitField |= 0x1;
+		_boilerPlateReadBitField |= 0x1;
 		uint16_t reg1 = Getuint16Value(0, data);
 		char buf[32];
 		sprintf(buf, "Classic %d (rev %d)", reg1 & 0x00ff, reg1 >> 8);
@@ -351,9 +357,9 @@ void modbus4360(uint8_t *data)// whizbang readings
 
 void modbus4163(uint8_t *data) // boilerplate data
 {
-	if ((boilerPlateReadBitField & 0x02) == 0)
+	if ((_boilerPlateReadBitField & 0x02) == 0)
 	{
-		boilerPlateReadBitField |= 0x02;
+		_boilerPlateReadBitField |= 0x02;
 		_chargeControllerInfo.mpptMode = Getuint16Value(0, data);
 		int Aux12FunctionS = (Getuint16Value(1, data) & 0x3f00) >> 8;
 		_chargeControllerInfo.hasWhizbang = Aux12FunctionS == 18;
@@ -361,9 +367,9 @@ void modbus4163(uint8_t *data) // boilerplate data
 }
 void modbus4243(uint8_t *data)
 {
-	if ((boilerPlateReadBitField & 0x04) == 0)
+	if ((_boilerPlateReadBitField & 0x04) == 0)
 	{
-		boilerPlateReadBitField |= 0x04;
+		_boilerPlateReadBitField |= 0x04;
 		_chargeControllerInfo.VbattRegSetPTmpComp = GetFloatValue(0, data, 10.0);
 		_chargeControllerInfo.nominalBatteryVoltage = Getuint16Value(1, data);
 		_chargeControllerInfo.endingAmps = GetFloatValue(2, data, 10.0);
@@ -372,9 +378,9 @@ void modbus4243(uint8_t *data)
 }
 void modbus16386(uint8_t *data)
 {
-	if ((boilerPlateReadBitField & 0x08) == 0)
+	if ((_boilerPlateReadBitField & 0x08) == 0)
 	{
-		boilerPlateReadBitField |= 0x08;
+		_boilerPlateReadBitField |= 0x08;
 		short reg16387 = Getuint16Value(0, data);
 		short reg16388 = Getuint16Value(1, data);
 		short reg16389 = Getuint16Value(2, data);
@@ -410,7 +416,7 @@ void onMqttConnect(bool sessionPresent)
 	sprintf(buf, "%s/cmnd/#", _rootTopicPrefix);
 	_mqttClient.subscribe(buf, 0);
 	_mqttClient.publish(_willTopic, 0, false, "Online");
-	boilerPlateInfoPublished = false;
+	_boilerPlateInfoPublished = false;
 	Wake();
 	logi("Subscribed to [%s], qos: 0", buf);
 }
@@ -493,7 +499,7 @@ void handleRoot()
 	s += "</ul>";
 	s += "<ul>";
 	s += "<li>Publish Rate : ";
-	s += _wakePublishRate;
+	s += _wakePublishRateStr;
 	s += " (S)</ul>";
 	s += "Go to <a href='config'>configure page</a> to change values.";
 	s += "</body></html>\n";
@@ -514,10 +520,10 @@ boolean formValidator()
 		mqttServerParam.errorMessage = "MQTT server is required";
 		valid = false;
 	}
-	int rate = _webServer.arg(wakePublishRateParam.getId()).toInt();
-	if (rate < 1 || rate > 30)
+	int rate = _webServer.arg(wakePublishRateParam.getId()).toInt() * 1000;
+	if (rate < MIN_PUBLISH_RATE || rate > MAX_PUBLISH_RATE)
 	{
-		wakePublishRateParam.errorMessage = "invalid publish rate.";
+		wakePublishRateParam.errorMessage = "Invalid publish rate.";
 		valid = false;
 	}
 	return valid;
@@ -550,27 +556,42 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 {
 	logd("MQTT Message arrived [%s]  qos: %d len: %d index: %d total: %d", topic, properties.qos, len, index, total);
 	printHexString(payload, len);
-	char pl[16];
-	for (int i = 0; i < len; i++)
+
+	StaticJsonDocument<64> doc;
+	DeserializationError err = deserializeJson(doc, payload);
+	if (err) // not json!
 	{
-		pl[i] = toupper(payload[i]);
+		logd("MQTT payload {%s} is not valid JSON!", payload);
 	}
-	if (strncmp(pl, "{\"WAKE\"}", len) == 0)
+	else 
 	{
-		boilerPlateInfoPublished = false;
-		Wake();
-		logd("Wake poll rate");
+		boolean messageProcessed = false;
+		if (doc.containsKey("stayAwake") && doc["stayAwake"].is<boolean>())
+		{
+			_stayAwake = doc["stayAwake"];
+			messageProcessed = true;
+			logd("Stay awake: %s", _stayAwake ? "yes" :"no");
+		}
+		if (doc.containsKey("wakePublishRate") && doc["wakePublishRate"].is<int>())
+		{
+			int publishRate = doc["wakePublishRate"];
+			messageProcessed = true;
+			if (publishRate >= MIN_PUBLISH_RATE && publishRate <= MAX_PUBLISH_RATE)
+			{
+				_wakePublishRate = doc["wakePublishRate"];
+				logd("Wake publish rate: %d", _wakePublishRate);
+			}
+			else
+			{
+				logd("wakePublishRate is out of rage!");
+			}
+		}
+		if (!messageProcessed)
+		{
+			logd("MQTT Json payload {%s} not recognized!", payload);
+		}
 	}
-	else if (strncmp(pl, "{\"INFO\"}", len) == 0)
-	{
-		boilerPlateInfoPublished = false;
-		Wake();
-		logd("info request received");
-	}
-	else
-	{
-		logd("MQTT Message {%s} not recognized!", pl);
-	}
+	Wake(); // wake on any MQTT command received
 }
 
 void setup()
@@ -624,11 +645,12 @@ void setup()
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
 		_mqttRootTopic[0] = '\0';
-		_wakePublishRate[0] = '\0';
+		_wakePublishRateStr[0] = '\0';
 		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
 	{
+		_wakePublishRate = atoi(_wakePublishRateStr) * 1000;
 		_iotWebConf.skipApStartup(); // Set WIFI_AP_PIN to gnd to force AP mode
 		if (_classicIP[0] != '\0' && _mqttServer[0] != '\0') // skip if factory reset
 		{
@@ -688,11 +710,13 @@ void loop()
 				_lastPublishTimeStamp = millis() + _currentPublishRate;
 				_publishCount++;
 				publishReadings();
+				// Serial.printf("%d ", _publishCount);
 			}
-			if (_publishCount >= WAKE_COUNT)
+			if (!_stayAwake && _publishCount >= WAKE_COUNT)
 			{
 				_publishCount = 0;
 				_currentPublishRate = SNOOZE_PUBLISH_RATE;
+				logd("Snoozing!");
 			}
 		}
 	}

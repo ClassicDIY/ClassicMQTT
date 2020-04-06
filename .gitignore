@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+*.pdb
 
 # Compiled Object files
 *.slo
@@ -32,3 +33,4 @@
 *.app
 code/Python/Larry.env
 code/Python/classic_mqtt_compose _larry.yml
+
