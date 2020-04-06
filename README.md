@@ -33,10 +33,6 @@ If you have Google Drive installed on your device, simply click on the link to i
 You might be asked to allow the installation of an app from an unknown source.</h3>
 </p>
 
-<p>
-Online help for the Android app: http://graham22.github.io/Classic/classicmonitor/help_en.html
-</p>
-
 ## License
 ```
 
@@ -57,32 +53,4 @@ Online help for the Android app: http://graham22.github.io/Classic/classicmonito
 ```
 
 
-Release notes for the ESP32 implementation:
-
------------------
-
-version 1.2
-
-<ul>
-<li>Updated to use IOTWebConf and AsyncMQTTClient</li>
-</ul>
-
------------------
-version 1.0.0
-
-<ul>
-<li>Initial Release</li>
-</ul>
-
------------------
-
-Release notes for the Raspberry Pi implementation:
-
------------------
-
-<ul>
-<li>Added validation and snooze_secs parameter</li>
-</ul>
-
------------------
 
