@@ -1,4 +1,4 @@
-# ESP32 Classic MQTT Publisher and Flash Tool 
+# ESP32 Classic MQTT Publisher
 
 <p align="center">
 <img src=https://github.com/graham22/ClassicMQTT/blob/master/pictures/ESP32-pinout-mapping.png width=500>
