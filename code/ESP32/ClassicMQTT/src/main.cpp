@@ -532,10 +532,16 @@ boolean formValidator()
 void WiFiEvent(WiFiEvent_t event)
 {
 	logd("[WiFi-event] event: %d", event);
+	String s;
+	StaticJsonDocument<128> doc;
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
-		Serial.printf("{\"IP\":\"%s\"}\n", WiFi.localIP().toString().c_str()); // send json to flash tool
+		doc["IP"] = WiFi.localIP().toString().c_str();
+		doc["ApPassword"] = TAG;
+		serializeJson(doc, s);
+		s += '\n';
+		Serial.printf(s.c_str()); // send json to flash tool
 		xTimerStart(mqttReconnectTimer, 0); // connect to MQTT once we have wifi
 		break;
 	case SYSTEM_EVENT_STA_DISCONNECTED:
