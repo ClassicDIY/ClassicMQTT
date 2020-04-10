@@ -2,8 +2,9 @@
 
 [![GitHub All Releases](https://img.shields.io/github/downloads/ClassicDIY/ClassicMQTT/total?style=for-the-badge)](https://https://github.com/ClassicDIY/ClassicMQTT/releases)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ClassicDIY/ClassicMQTT?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
-[![https://www.buymeacoffee.com/r4K2HIB](https://img.shields.io/badge/Donate-Buy%20Me%20a%20coffee-orange?style=for-the-badge)](https://www.buymeacoffee.com/r4K2HIB)
 [![GitHub issues](https://img.shields.io/github/issues-raw/ClassicDIY/ClassicMQTT?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/issues)
+[![https://www.buymeacoffee.com/r4K2HIB](https://img.shields.io/badge/Donate-Buy%20Me%20a%20coffee-orange?style=for-the-badge)](https://www.buymeacoffee.com/r4K2HIB)
+
 <p>
 The ClassicMQTT publisher will read data from your classic charge controller using the Modbus protocol and publish the data to a MQTT broker. If you use a cloud based broker like <a href="http://www.dioty.co/">dioty.co</a> then you can monitor your classic charge controller from anywhere on the internet using the Android MQTT subscriber App. This also allows you to integrate other MQTT subscriber applications like HomeAssistant and NodeRed.
 
