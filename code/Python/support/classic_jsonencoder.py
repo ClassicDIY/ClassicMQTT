@@ -56,9 +56,9 @@ def encodeClassicData_readings(decoded):
     # "SOC":99,
     classicData["SOC"] = decoded["SOC"]
     # "Aux1":false,
-    classicData["Aux1"] = ((decoded["InfoFlagsBits"] & 0x4000) == 1)
+    classicData["Aux1"] = ((decoded["InfoFlagsBits"] & 0x00004000) != 0)
     # "Aux2":false,
-    classicData["Aux2"] = ((decoded["InfoFlagsBits"] & 0x8000) == 1)
+    classicData["Aux2"] = ((decoded["InfoFlagsBits"] & 0x00008000) != 0)
     # "Power":0.01,
     classicData["Power"] = decoded["Power"]
     # "FETTemperature":4.31,
