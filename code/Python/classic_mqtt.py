@@ -21,20 +21,33 @@ from datetime import timedelta
 # --------------------------------------------------------------------------- # 
 # GLOBALS
 # --------------------------------------------------------------------------- # 
-DEFAULT_PULSE_RATE        = 5         #Periodic gets called every this many seconds
-DEFAULT_SNOOZE_CYCLES     = 60        #When nobody is listening, snooze this many cycles
-DEFAULT_WAKE_COUNT        = 60        #The number of times to publish at the fast rate after getting a "wake"
-MODBUS_MAX_ERROR_COUNT    = 300       #Number of errors on the MODBUS before the tool exits
-MQTT_MAX_ERROR_COUNT      = 300       #Number of errors on the MQTT before the tool exits
-MAIN_LOOP_SLEEP_SECS      = 5         #Seconds to sleep in the main loop
+MAX_WAKE_PUB_INT_SECS       = 30        #in seconds
+MIN_WAKE_PUB_INT_SECS       = 1         #in seconds
+DEFAULT_WAKE_PUB_INT_SECS   = 5         #in seconds
+MIN_WAKE_DURATION_SECS  = 1*60          #in seconds (1 minute)
 
-wakeCount                 = 0
-infoPublished             = True
-snoozeCycles              = DEFAULT_SNOOZE_CYCLES
-snoozeCount               = 0
-snoozing                  = True
-modbusErrorCount          = 0
+MAX_SNOOZE_PUB_INT_SECS     = 4*60*60   #in seconds (4 hours)
+MIN_SNOOZE_PUB_INT_SECS     = 1*60      #in seconds (1 minute)
+DEFAULT_SNOOZE_PUB_INT_SECS = 5*60      #in seconds (5 minutes)
 
+MODBUS_MAX_ERROR_COUNT      = 300       #Number of errors on the MODBUS before the tool exits
+MQTT_MAX_ERROR_COUNT        = 300       #Number of errors on the MQTT before the tool exits
+MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
+
+awakePublishLimit    = MIN_WAKE_DURATION_SECS #How many times to publish before sleeping.
+awakePublishCount            = 0 #Home many publishes have I done?
+
+awakePublishCycleLimit   = DEFAULT_WAKE_PUB_INT_SECS #Publish every this many cycles
+awakePublishCycles           = 0
+
+snoozePublishCycleLimit     = DEFAULT_SNOOZE_PUB_INT_SECS #When snoozing, publish every this many cycles.
+snoozePublishCycles          = 0 #How many cycles have gone by?
+
+snoozing                    = True
+
+
+infoPublished              = True
+modbusErrorCount           = 0
 mqttConnected             = False
 mqttErrorCount            = 0
 mqttClient                = None
@@ -52,6 +65,10 @@ mqttPort                  = 1883                #Default MQTT port
 mqttRoot                  = "ClassicMQTT"       #Dfault Root to publish on
 mqttUser                  = "username"          #Default user
 mqttPassword              = "password"          #Default password
+snoozePublishSecs         = DEFAULT_SNOOZE_PUB_INT_SECS #Every this many seconds
+wakePublishSecs           = DEFAULT_WAKE_PUB_INT_SECS   #Every this many seconds
+wakeDurationSecs          = MIN_WAKE_DURATION_SECS #Stay awake this long after a "WAKE" or "INFO"
+
 
 # --------------------------------------------------------------------------- # 
 # configure the logging
@@ -110,7 +127,7 @@ def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
 
-        global wakeCount, infoPublished, snoozing, doStop, mqttConnected, mqttErrorCount
+        global wakeCycleCount, infoPublished, snoozing, doStop, mqttConnected, mqttErrorCount
 
         mqttConnected = True #got a message so we must be up again...
         mqttErrorCount = 0
@@ -120,7 +137,7 @@ def on_message(client, userdata, message):
 
         #if we get a WAKE or INFO, reset the counters, re-puplish the INFO and stop snoozing.
         if msg == "{\"WAKE\"}" or msg == "{\"INFO\"}":
-            wakeCount = 0
+            wakeCycleCount = 0
             infoPublished = False
             snoozing = False
         elif msg == "{\"STOP\"}":
@@ -152,26 +169,38 @@ def mqttPublish(client, data, subtopic):
 # Test to see if it is time to gather data and publish
 # --------------------------------------------------------------------------- # 
 def timeToPublish():
-    global snoozing, snoozeCount, wakeCount, infoPublished
-    if snoozing:
-        if (snoozeCount >= snoozeCycles):
-            infoPublished = False
-            snoozeCount = 0
+    global snoozing, snoozePublishCycles, infoPublished, snoozePublishCycleLimit, awakePublishCycleLimit, awakePublishCycles, awakePublishCount
+
+    if not snoozing: #Awake
+        if (awakePublishCycles>=awakePublishCycleLimit): #Is it awake publish time?
+            awakePublishCycles = 0 #reset awakePublishCycles
+            if awakePublishCount >= awakePublishLimit:
+                snoozing = True # Switch to snoozing
+                snoozePublishCycles = 0
+                awakePublishCount = 0
+                return False
+            else:
+                awakePublishCount =+ 1
+                return True
+        else:
+            awakePublishCycles += 1
+            return False
+    else: #Snoozing
+        # We passively publish every snoozePublishCycles while snoozing
+        if (snoozePublishCycles >= snoozePublishCycleLimit):
+            infoPublished = False #Makes #info# get published
+            snoozePublishCycles = 0 #Reset the cycles to start again
             return True
         else:
-            snoozeCount += 1
+            snoozePublishCycles += 1
             return False
-    else:
-        wakeCount += 1
-        if wakeCount >= DEFAULT_WAKE_COUNT:
-            snoozing = True
-            wakeCount = 0
-        return True
+
 
 # --------------------------------------------------------------------------- # 
-# Periodic will be called every so often to read from MODBUS and publish to MQTT
+# Periodic will be called every 1 second to and check is a publish is needed
+# if so, it will read from MODBUS and publish to MQTT
 # --------------------------------------------------------------------------- # 
-@tl.job(interval=timedelta(seconds=DEFAULT_PULSE_RATE))
+@tl.job(interval=timedelta(seconds=1))
 def periodic():
     global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount
     #log.debug("in Periodic")
@@ -206,16 +235,67 @@ def periodic():
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv):
     
-    global classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword, snoozeCycles
+    global classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot, mqttUser, mqttPassword, awakePublishCycleLimit, snoozePublishCycleLimit, awakePublishLimit
 
     try:
-      opts, args = getopt.getopt(argv,"h",["classic=","classic_port=","classic_name=","mqtt=","mqtt_port=","mqtt_root=","mqtt_user=","mqtt_pass=","snooze_secs="])
+      opts, args = getopt.getopt(argv,"h",
+                    ["classic=",
+                     "classic_port=",
+                     "classic_name=",
+                     "mqtt=",
+                     "mqtt_port=",
+                     "mqtt_root=",
+                     "mqtt_user=",
+                     "mqtt_pass=",
+                     "wake_publish_rate=",
+                     "snooze_publish_rate=",
+                     "wake_duration="])
     except getopt.GetoptError:
-        print ("classic_mqtt.py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --snooze_secs <{}>".format(classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot, snoozeCycles*DEFAULT_PULSE_RATE))
+        print ("classic_mqtt.py" 
+             + " --classic <{}>" 
+             + " --classic_port <{}>" 
+             + " --classic_name <{}>" 
+             + " --mqtt <{}>" 
+             + " --mqtt_port <{}>" 
+             + " --mqtt_root <{}>" 
+             + " --mqtt_user <username>" 
+             + " --mqtt_pass <password>" 
+             + " --wake_publish_rate <{}>"
+             + " --snooze_publish_rate <{}>"
+             + " --wake_duration <{}>".format(
+                    classicHost, 
+                    classicPort, 
+                    classicName, 
+                    mqttHost, 
+                    mqttPort, 
+                    mqttRoot, 
+                    awakePublishCycleLimit,
+                    snoozePublishCycleLimit,
+                    int(awakePublishLimit*awakePublishCycleLimit)))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("classic_mqtt.py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --snooze_secs <{}>".format(classicHost, classicPort, classicName, mqttHost, mqttPort, mqttRoot, snoozeCycles*DEFAULT_PULSE_RATE))
+            print ("classic_mqtt.py" 
+                + " --classic <{}>" 
+                + " --classic_port <{}>" 
+                + " --classic_name <{}>" 
+                + " --mqtt <{}>" 
+                + " --mqtt_port <{}>" 
+                + " --mqtt_root <{}>" 
+                + " --mqtt_user <username>" 
+                + " --mqtt_pass <password>" 
+                + " --wake_publish_rate <{}>"
+                + " --snooze_publish_rate <{}>"
+                + " --wake_duration <{}>".format(
+                        classicHost, 
+                        classicPort, 
+                        classicName, 
+                        mqttHost, 
+                        mqttPort, 
+                        mqttRoot, 
+                        awakePublishCycleLimit,
+                        snoozePublishCycleLimit,
+                        int(awakePublishLimit*awakePublishCycleLimit)))
             sys.exit()
         elif opt in ('--classic'):
             classicHost = validateURLParameter(arg,"classic",classicHost)
@@ -233,8 +313,20 @@ def handleArgs(argv):
             mqttUser = validateStrParameter(arg,"mqtt_user", mqttUser)
         elif opt in ("--mqtt_pass"):
             mqttPassword = validateStrParameter(arg,"mqtt_pass", mqttPassword)
-        elif opt in ("--snooze_secs"):
-            snoozeCycles = int(validateIntParameter(arg,"snooze_secs", int(snoozeCycles*DEFAULT_PULSE_RATE))/DEFAULT_PULSE_RATE)
+        elif opt in ("--wake_publish_rate"):
+            awakePublishCycleLimit = int(validateIntParameter(arg,"wake_publish_rate", awakePublishCycleLimit))
+        elif opt in ("--snooze_publish_rate"):
+            snoozePublishCycleLimit = int(validateIntParameter(arg,"snooze_publish_rate", snoozePublishCycleLimit))
+        elif opt in ("--wake_duration_secs"):
+            awakePublishLimit = int(validateIntParameter(arg,"wake_durations_secs", awakePublishLimit*awakePublishCycleLimit)/awakePublishCycleLimit)
+
+    #Validate the wake/snooze stuff
+    if (snoozePublishSecs < wakePublishSecs):
+        print("--wake_publish_rate must be less than or equal to --snooze_publish_rate")
+        sys.exit()
+    if (wakeDurationSecs<MIN_WAKE_DURATION_SECS):
+        print("--wake_duration_secs must be greater than {} seconds".format(MIN_WAKE_DURATION_SECS))
+        sys.exit()
 
 
     log.info("classicHost = {}".format(classicHost))
@@ -246,7 +338,15 @@ def handleArgs(argv):
     log.info("mqttUser = {}".format(mqttUser))
     log.info("mqttPassword = **********")
     #log.info("mqttPassword = {}".format("mqttPassword"))
-    log.info("snoozeCycles = {}".format(snoozeCycles))
+    log.info("awakePublishCycleLimit = {}".format(awakePublishCycleLimit))
+    log.info("snoozePublishCycleLimit = {}".format(snoozePublishCycleLimit))
+    log.info("awakePublishLimit = {}".format(awakePublishLimit))
+
+    #Now calculate the number of cycles that are needed to get the proper cycles for each rate
+    #Example, if the periodic is 2 seconds and the wake rate is every 6 seconds, the number of
+    #pulses needed would be 6/2 = 3 pules per wake publish.
+
+    sys.exit(0)    
 
 # --------------------------------------------------------------------------- # 
 # Main
