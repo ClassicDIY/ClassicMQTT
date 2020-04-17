@@ -325,8 +325,6 @@ def handleArgs(argv):
     log.info("snoozePublishCycleLimit = {}".format(snoozePublishCycleLimit))
     log.info("awakePublishLimit = {}".format(awakePublishLimit))
 
-    sys.exit(0)    
-
 # --------------------------------------------------------------------------- # 
 # Main
 # --------------------------------------------------------------------------- # 
