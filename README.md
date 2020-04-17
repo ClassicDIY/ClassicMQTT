@@ -24,7 +24,7 @@ The code for the ClassicMQTT publisher has been implemented for the
 </p>
 
 <p>
-Please refer to the <a href="https://github.com/ClassicDIY/ClassicMQTT/wiki/1.-Home">ClassicMQTT wiki</a> for more information.
+Please refer to the <a href="https://github.com/ClassicDIY/ClassicMQTT/wiki">ClassicMQTT wiki</a> for more information.
 </p>
 
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
