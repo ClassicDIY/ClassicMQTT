@@ -6,13 +6,13 @@ The code in this repository will read data from your Midnite Classic over the TC
 The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or implied.
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
 
-version 1.0.1  
+version 1.0.2
 As the name implies, this tool is implemeted in Python and is meant to run on a computer system that can reach your Midnite Classic Solar MPPT Controller and an MQTT broker over a network. Once launched, the program will periodically connect to the Classic using TCP based MODBUS then upload that data to an MQTT broker where it is availabe for subscription from other programs or apps. An example installation would be a Raspberry Pi running on the local network with the Classic and pushing the data to either a local MQTT broker or one the internet. 
 
 ## **Get It**
 
 1. Copy this repository (if you understand git, you can get it that way too)  
-    `wget https://github.com/graham22/ClassicMQTT/archive/master.zip`
+    `wget https://github.com/ClassicDIY/ClassicMQTT/archive/master.zip`
 2. Extract the zip file:  
     `unzip master.zip`
 3. Change directory  
@@ -22,16 +22,16 @@ When it comes time to run the program, there are parameters that can be set or p
 **Parameters:**  
 ```  
 --classic <ClassicHost>         : The IP address of your Midnite Classic Solar Controller, no default.  
---classic_port <502>            : The prot for the Classic MODBUS, defaults to 502 if unspecified. 
---classic_name <Classic>        : The name used in the Android app when adding a controller to the nav bar. 
+--classic_port <502>            : The port for the Classic MODBUS, defaults to 502 if unspecified. 
+--classic_name <classic>        : The name used in the Android app when adding a controller to the nav bar. 
 --mqtt <127.0.0.1>              : The IP or URL of the MQTT Broker, defaults to 127.0.0.1 if unspecified.  
 --mqtt_port <1883>              : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
 --mqtt_root <ClassicMQTT>       : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
 --mqtt_user <username>          : The username to access the MQTT Broker.  
 --mqtt_pass <password>          : The passowrd to access the MQTT Broker.
---wake_publish_rate <seconds>   : The amount of time between updates when in wake mode (5 seconds).
---snooze_publish_rate <seconds> : The amount of time between updates when in snooze mode (5 minutes).
---wake_duration <seconds>       : The amount of time to stay in wake mode after reciving an "info" or "wake" message (15 minutes).
+--wake_publish_rate <5>         : The amount of seconds between updates when in wake mode (default is 5 seconds).
+--snooze_publish_rate <300>     : The amount of seconds between updates when in snooze mode (default is 5 minutes).
+--wake_duration <900>           : The amount of seconds to stay in wake mode after reciving an "info" or "wake" message (default is 15 minutes).
 ```  
 
 ## **Run It**
