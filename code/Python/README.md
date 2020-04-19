@@ -21,15 +21,17 @@ As the name implies, this tool is implemeted in Python and is meant to run on a 
 When it comes time to run the program, there are parameters that can be set or passed they are:  
 **Parameters:**  
 ```  
---classic <ClassicHost>     : The IP address of your Midnite Classic Solar Controller, no default.  
---classic_port <502>        : The prot for the Classic MODBUS, defaults to 502 if unspecified. 
---classic_name <Classic>    : The name used in the Android app when adding a controller to the nav bar. 
---mqtt <127.0.0.1>          : The IP or URL of the MQTT Broker, defaults to 127.0.0.1 if unspecified.  
---mqtt_port <1883>          : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
---mqtt_root <ClassicMQTT>   : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
---mqtt_user <username>      : The username to access the MQTT Broker.  
---mqtt_pass <password>      : The passowrd to access the MQTT Broker. 
---snooze_secs <seconds>     : The amount of time to snooze between update when not in active mode, if unspecified 300 seconds (5 minutes). 
+--classic <ClassicHost>         : The IP address of your Midnite Classic Solar Controller, no default.  
+--classic_port <502>            : The prot for the Classic MODBUS, defaults to 502 if unspecified. 
+--classic_name <Classic>        : The name used in the Android app when adding a controller to the nav bar. 
+--mqtt <127.0.0.1>              : The IP or URL of the MQTT Broker, defaults to 127.0.0.1 if unspecified.  
+--mqtt_port <1883>              : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
+--mqtt_root <ClassicMQTT>       : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
+--mqtt_user <username>          : The username to access the MQTT Broker.  
+--mqtt_pass <password>          : The passowrd to access the MQTT Broker.
+--wake_publish_rate <seconds>   : The amount of time between updates when in wake mode (5 seconds).
+--snooze_publish_rate <seconds> : The amount of time between updates when in snooze mode (5 minutes).
+--wake_duration <seconds>       : The amount of time to stay in wake mode after reciving an "info" or "wake" message (5 minutes).
 ```  
 
 ## **Run It**
