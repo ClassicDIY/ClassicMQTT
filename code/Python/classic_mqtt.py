@@ -43,7 +43,7 @@ MAIN_LOOP_SLEEP_SECS        = 5                          #Seconds to sleep in th
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
 argumentValues = {'classicHost':"ClassicHost", 'classicPort':"502", 'classicName':"classic", \
-                  'mqttHost':"127.0.0.1", 'mqttPort':"502", 'mqttRoot':"ClassicMQTT", 'mqttUser':"username", 'mqttPassword':"password", \
+                  'mqttHost':"127.0.0.1", 'mqttPort':"1883", 'mqttRoot':"ClassicMQTT", 'mqttUser':"username", 'mqttPassword':"password", \
                   'awakePublishCycleLimit':DEFAULT_WAKE_PUB_INT_SECS, \
                   'snoozePublishCycleLimit':DEFAULT_SNOOZE_PUB_INT_SECS, \
                   'awakePublishLimit':DEFAULT_WAKE_DURATION_SECS}
