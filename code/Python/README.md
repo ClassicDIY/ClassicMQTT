@@ -31,7 +31,7 @@ When it comes time to run the program, there are parameters that can be set or p
 --mqtt_pass <password>          : The passowrd to access the MQTT Broker.
 --wake_publish_rate <seconds>   : The amount of time between updates when in wake mode (5 seconds).
 --snooze_publish_rate <seconds> : The amount of time between updates when in snooze mode (5 minutes).
---wake_duration <seconds>       : The amount of time to stay in wake mode after reciving an "info" or "wake" message (5 minutes).
+--wake_duration <seconds>       : The amount of time to stay in wake mode after reciving an "info" or "wake" message (15 minutes).
 ```  
 
 ## **Run It**
