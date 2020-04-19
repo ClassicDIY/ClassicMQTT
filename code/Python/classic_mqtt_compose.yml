@@ -30,10 +30,9 @@ services:
     #
     # The file should look like the following.
     #
-    # CLASSIC_NAME=<Name of you Classic usually "classic">
     # CLASSIC=<IP address or URL>
     # CLASSIC_PORT=<Port usually 502>
-    # CLASSIC_NAME=<Name used in Android App>
+    # CLASSIC_NAME=<Name of you Classic usually "classic" - the name used in Android App>
     # MQTT_ROOT=<The MQTT Root, usually ClassicMQTT>
     # MQTT_USER=ClassicPublisher
     # MQTT_PASS=ClassicPub123
