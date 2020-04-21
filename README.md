@@ -1,8 +1,8 @@
 <h1>Modbus to MQTT publisher for the Midnite Solar Classic Charge Controller</h1>
 
-[![GitHub All Releases](https://img.shields.io/github/downloads/ClassicDIY/ClassicMQTT/total?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ClassicDIY/ClassicMQTT?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
-[![GitHub issues](https://img.shields.io/github/issues-raw/ClassicDIY/ClassicMQTT?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/issues)
+[![GitHub All Releases](https://img.shields.io/github/downloads/ClassicDIY/ClassicMQTT/total.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ClassicDIY/ClassicMQTT.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
+[![GitHub issues](https://img.shields.io/github/issues-raw/ClassicDIY/ClassicMQTT.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/issues)
 [![https://www.buymeacoffee.com/r4K2HIB](https://img.shields.io/badge/Donate-Buy%20Me%20a%20coffee-orange?style=for-the-badge)](https://www.buymeacoffee.com/r4K2HIB)
 
 <p>
