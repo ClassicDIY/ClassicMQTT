@@ -16,66 +16,64 @@ from enum import Enum
 from support.classic_modbusdecoder import getModbusData
 from support.classic_jsonencoder import encodeClassicData_readings, encodeClassicData_info
 from support.classic_validate import handleArgs
-from timeloop import Timeloop
-from datetime import timedelta
+from time import time_ns
 
-class PublishMode(Enum):
-    Snoozing = 1
-    Awake = 2
+
 # --------------------------------------------------------------------------- # 
 # GLOBALS
 # --------------------------------------------------------------------------- # 
-MAX_WAKE_PUB_INT_SECS       = 30        #in seconds
-MIN_WAKE_PUB_INT_SECS       = 1         #in seconds
-DEFAULT_WAKE_PUB_INT_SECS   = 5                          #in seconds
-MIN_WAKE_DURATION_SECS      = 1*60                       #in seconds (1 minute)
-DEFAULT_WAKE_DURATION_SECS  = 15*60                      #in seconds (15 minute)
+MAX_WAKE_RATE               = 15        #in seconds
+MIN_WAKE_RATE               = 3         #in seconds
+DEFAULT_WAKE_RATE           = 5         #in seconds
+MIN_WAKE_PUBLISHES          = 15        #minimum number of publishes before snoozing this * wake_rate = time awake
+DEFAULT_WAKE_PUBLISHES      = 60        #default number of publishes before switching to snooze
 
-MAX_SNOOZE_PUB_INT_SECS     = 4*60*60                    #in seconds (4 hours)
-MIN_SNOOZE_PUB_INT_SECS     = 1*60                       #in seconds (1 minute)
-DEFAULT_SNOOZE_PUB_INT_SECS = 5*60                       #in seconds (5 minutes)
+MAX_SNOOZE_RATE             = 4*60*60   #in seconds (4 hours)
+MIN_SNOOZE_RATE             = 1*60      #in seconds (1 minute)
+DEFAULT_SNOOZE_RATE         = 5*60      #in seconds (5 minutes)
 
-MODBUS_MAX_ERROR_COUNT      = 300                        #Number of errors on the MODBUS before the tool exits
-MQTT_MAX_ERROR_COUNT        = 300                        #Number of errors on the MQTT before the tool exits
-MAIN_LOOP_SLEEP_SECS        = 5                          #Seconds to sleep in the main loop
+MODBUS_MAX_ERROR_COUNT      = 300       #Number of errors on the MODBUS before the tool exits
+MQTT_MAX_ERROR_COUNT        = 300       #Number of errors on the MQTT before the tool exits
+MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 
 # --------------------------------------------------------------------------- # 
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
-argumentValues = {'classicHost':"ClassicHost", 'classicPort':"502", 'classicName':"classic", \
-                  'mqttHost':"127.0.0.1", 'mqttPort':"1883", 'mqttRoot':"ClassicMQTT", 'mqttUser':"username", 'mqttPassword':"password", \
-                  'awakePublishCycleLimit':DEFAULT_WAKE_PUB_INT_SECS, \
-                  'snoozePublishCycleLimit':DEFAULT_SNOOZE_PUB_INT_SECS, \
-                  'awakePublishLimit':DEFAULT_WAKE_DURATION_SECS}
+argumentValues = { \
+    'classicHost':"ClassicHost", 'classicPort':"502", 'classicName':"classic", \
+    'mqttHost':"127.0.0.1", 'mqttPort':"1883", 'mqttRoot':"ClassicMQTT", 'mqttUser':"username", 'mqttPassword':"password", \
+    'awakePublishRate':DEFAULT_WAKE_RATE, \
+    'snoozePublishRate':DEFAULT_SNOOZE_RATE, \
+    'awakePublishLimit':DEFAULT_WAKE_PUBLISHES}
 
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
 # --------------------------------------------------------------------------- # 
-currentMode                 = PublishMode.Snoozing
 infoPublished               = False
 stayAwake                   = False
 mqttConnected               = False
 doStop                      = False
+modeAwake                   = False
 
 modbusErrorCount            = 0
 mqttErrorCount              = 0
-awakePublishCount           = 0                          #How many publishes have I done?
+awakePublishCount           = 0      #How many publishes have I done?
 awakePublishCycles          = 0
-snoozePublishCycles         = 0                          #How many cycles have gone by?
-
+snoozePublishCycles         = 0      #How many cycles have gone by?
+snoozeCycleLimit            = 0      #How many cycles before I publish in snooze mode (changes with wake rate)
+currentPollRate             = DEFAULT_WAKE_RATE
 mqttClient                  = None
 
 # --------------------------------------------------------------------------- # 
 # configure the logging
 # --------------------------------------------------------------------------- # 
 log = logging.getLogger('classic_mqtt')
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-handler.setFormatter(formatter)
-log.addHandler(handler) 
-log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
-
-tl = Timeloop()
+if not log.handlers:
+    handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+    handler.setFormatter(formatter)
+    log.addHandler(handler) 
+    log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
 
 # --------------------------------------------------------------------------- # 
 # MQTT On Connect function
@@ -120,7 +118,7 @@ def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
 
-        global infoPublished, currentMode, doStop, mqttConnected, mqttErrorCount, awakePublishCount, awakePublishCycles, stayAwake
+        global currentPollRate, infoPublished, modeAwake, doStop, mqttConnected, mqttErrorCount, awakePublishCount, awakePublishCycles, stayAwake, argumentValues, snoozeCycleLimit
 
         mqttConnected = True #got a message so we must be up again...
         mqttErrorCount = 0
@@ -132,21 +130,36 @@ def on_message(client, userdata, message):
         if msg == "{\"WAKE\"}" or msg == "{\"INFO\"}":
             #Make info packet get published
             infoPublished = False 
-            currentMode = PublishMode.Awake
+            modeAwake = True
             awakePublishCount = 0 #reset the publish count
 
             # this will cause an immediate publish, no reason to wait for the cycles to expire
-            awakePublishCycles = argumentValues['awakePublishCycleLimit'] 
-        elif msg == "{\"STAYAWAKE:TRUE\"}":
-            log.debug("StayAwake:true received, setting stayAwake true")
-            stayAwake = True
-        elif msg == "{\"STAYAWAKE:FALSE\"}":
-            log.debug("StayAwake:false received, setting stayAwake false")
-            stayAwake = False
+            awakePublishCycles = argumentValues['awakePublishRate'] 
         elif msg == "{\"STOP\"}":
             doStop = True
-        else:
-            log.error("on_message: Received something else")
+        else: #JSON messages
+            theMessage = json.loads(message.payload.decode(encoding='UTF-8'))
+            log.debug(theMessage)
+            
+            if "stayAwake" in theMessage:
+                stayAwake = theMessage['stayAwake']
+                log.debug("StayAwake received, setting stayAwake to {}".format(stayAwake))
+            
+            if "wakePublishRate" in theMessage:
+                newRate_msecs = theMessage['wakePublishRate']
+                newRate = round(newRate_msecs/1000)
+                if newRate < MIN_WAKE_RATE:
+                    log.error("Received wakePublishRate of {} which is below minimum of {}".format(newRate,MIN_WAKE_RATE))
+                elif newRate > MAX_WAKE_RATE:
+                    log.error("Received wakePublishRate of {} which is above maximum of {}".format(newRate,MAX_WAKE_RATE))
+                else:
+                    argumentValues['awakePublishRate'] = newRate
+                    currentPollRate = newRate
+                    snoozeCycleLimit = round(argumentValues['snoozePublishRate']/argumentValues['awakePublishRate'])
+                    log.debug("wakePublishRate message received, setting rate to {}".format(newRate))
+                    log.debug("Updating snoozeCycleLimit to {}".format(snoozeCycleLimit))
+            else:
+                log.error("on_message: Received something else")
             
 # --------------------------------------------------------------------------- # 
 # MQTT Publish the data
@@ -172,87 +185,104 @@ def mqttPublish(client, data, subtopic):
 # publish based on the mode (awake or snoozing) and the frequency rates
 # --------------------------------------------------------------------------- # 
 def timeToPublish():
-    global currentMode, snoozePublishCycles, infoPublished, awakePublishCycles, awakePublishCount, stayAwake
-    #log.debug(currentMode)
-    if (currentMode == PublishMode.Awake):
-        #Has the number of cycles between each publish time passed (if you publish every 5 seconds, then 5 will go by)
-        if (awakePublishCycles>=argumentValues['awakePublishCycleLimit']): 
-            awakePublishCycles = 0 #reset awakePublishCycles
-
-            #We remain awake for a number of publishes (calcluated from awake_duration)
-            if awakePublishCount >= argumentValues['awakePublishLimit']:
-                awakePublishCount = 0
-                if stayAwake:
-                    log.debug("StayAwake enabled, overriding going into snooze")
-                    return True
-                else:
-                    currentMode = PublishMode.Snoozing
-                    snoozePublishCycles = 0
-                    return False
-            else:
-                awakePublishCount =+ 1
+    global modeAwake, snoozePublishCycles, infoPublished, awakePublishCycles, awakePublishCount, stayAwake, argumentValues
+    #log.debug("modeAwake: {}".format(modeAwake))
+    if (modeAwake):
+        #We remain awake for a number of publishes
+        #log.debug("awakePublishCount:{}".format(awakePublishCount))
+        #log.debug("awakePublishLimit:{}".format(argumentValues['awakePublishLimit']))
+        if awakePublishCount >= argumentValues['awakePublishLimit']:
+            awakePublishCount = 0
+            if stayAwake:
+                log.debug("StayAwake enabled, so not going into snooze mode")
                 return True
+            else:
+                modeAwake = False
+                snoozePublishCycles = 0
+                return False
         else:
-            awakePublishCycles += 1
-            return False
+            awakePublishCount += 1
+            return True
     else: #Snoozing
         # We passively publish every snoozePublishCycles while snoozing
-        # log.debug("snoozePuvlishCycles:{}".format(snoozePublishCycles))
-        if (snoozePublishCycles >= argumentValues['snoozePublishCycleLimit']):
+        # log.debug("snoozePublishCycles:{}".format(snoozePublishCycles))
+        
+        if (snoozePublishCycles >= snoozeCycleLimit):
             infoPublished = False #Makes #info# get published
             snoozePublishCycles = 0 #Reset the cycles to start again
             return True
         else:
             snoozePublishCycles += 1
             return False
-
 # --------------------------------------------------------------------------- # 
-# Periodic will be called every 1 second to and check if a publish is needed.
+# Periodic will be called when needed.
 # If so, it will read from MODBUS and publish to MQTT
 # --------------------------------------------------------------------------- # 
-@tl.job(interval=timedelta(seconds=1))
-def periodic():
-    global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount
-    #log.debug("in Periodic")
-    try:
-        if timeToPublish() and mqttConnected:
-            data = {}
-            #Get the Modbus Data and store it.
-            data = getModbusData(argumentValues['classicHost'], argumentValues['classicPort'])
-            if data: # got data
-                modbusErrorCount = 0
+def periodic(modbus_stop):    
 
-                if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
-                    if (not infoPublished): #Check if the Info has been published yet
-                        if mqttPublish(mqttClient,encodeClassicData_info(data),"info"):
-                            infoPublished = True                        
-                        else:
-                            mqttErrorCount += 1
+    global mqttClient, modbusErrorCount, infoPublished, mqttErrorCount, currentPollRate
+
+    if not modbus_stop.is_set():
+        #Get the current time as a float of seconds.
+        beforeTime = time_ns() /  1000000000.0
+
+        #log.debug("in Periodic")
+        try:
+            if timeToPublish() and mqttConnected:
+                data = {}
+                #Get the Modbus Data and store it.
+                data = getModbusData(modeAwake, argumentValues['classicHost'], argumentValues['classicPort'])
+                if data: # got data
+                    modbusErrorCount = 0
+
+                    if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
+                        if (not infoPublished): #Check if the Info has been published yet
+                            if mqttPublish(mqttClient,encodeClassicData_info(data),"info"):
+                                infoPublished = True                        
+                            else:
+                                mqttErrorCount += 1
+                    else:
+                        mqttErrorCount += 1
+
                 else:
-                    mqttErrorCount += 1
+                    log.error("MODBUS data not good, skipping publish")
+                    modbusErrorCount += 1
+        except Exception as e:
+            log.error("Caught Error in periodic")
+            log.exception(e, exc_info=True)
 
-            else:
-                log.error("MODBUS data not good, skipping publish")
-                modbusErrorCount += 1
-    except Exception as e:
-        log.error("Caught Error in periodic")
-        log.exception(e, exc_info=True)
+        #Account for the time that has been spent on this cycle to do the actual work
+        timeUntilNextInterval = currentPollRate - (time_ns()/1000000000.0 - beforeTime)
 
+        # If doing the work took too long, skip as many polling forward so that we get a time in the future.
+        while (timeUntilNextInterval < 0):
+            log.debug("Adjusting next interval to account for cycle taking too long: {}".format(timeUntilNextInterval))
+            timeUntilNextInterval = timeUntilNextInterval + currentPollRate 
+            log.debug("Adjusted interval: {}".format(timeUntilNextInterval))
+
+        #log.debug("Next Interval: {}".format(timeUntilNextInterval))
+        # set myself to be called again in correct number of seconds
+        threading.Timer(timeUntilNextInterval, periodic, [modbus_stop]).start()
 
 # --------------------------------------------------------------------------- # 
 # Main
 # --------------------------------------------------------------------------- # 
 def run(argv):
 
-    global doStop, mqttClient, awakePublishCycles, snoozePublishCycles
+    global doStop, mqttClient, awakePublishCycles, snoozePublishCycles, currentPollRate, snoozeCycleLimit
 
     log.info("classic_mqtt starting up...")
 
-    handleArgs(argv, argumentValues, MIN_WAKE_DURATION_SECS)
+    handleArgs(argv, argumentValues)
+
+    snoozeCycleLimit = round(argumentValues['snoozePublishRate']/argumentValues['awakePublishRate'])
+    log.debug("snoozeCycleLimit: {}".format(snoozeCycleLimit))
 
     #Make it publish right away
-    awakePublishCycles = argumentValues['awakePublishCycleLimit']
-    snoozePublishCycles =  argumentValues['snoozePublishCycleLimit']
+    awakePublishCycles = argumentValues['awakePublishRate']
+    snoozePublishCycles =  argumentValues['snoozePublishRate']
+
+    currentPollRate = argumentValues['awakePublishRate']
 
     #random seed from the OS
     seed(int.from_bytes( os.urandom(4), byteorder="big"))
@@ -282,28 +312,25 @@ def run(argv):
     
     mqttClient.loop_start()
 
-    #Setup the Timeloop stuff so periodic gets called every 5 seconds
-    tl.start(block=False)
 
-    keepLooping = True
+    #define the stop for the function
+    periodic_stop = threading.Event()
+    # start calling periodic now and every 
+    periodic(periodic_stop)
 
     log.debug("Starting main loop...")
-    while keepLooping:
-        try:
+    while not doStop:
+        try:            
             time.sleep(MAIN_LOOP_SLEEP_SECS)
             #check to see if shutdown received
-            if doStop:
-                log.info("Stopping...")
-                keepLooping = False
-            
             if modbusErrorCount > MODBUS_MAX_ERROR_COUNT:
-                log.error("MODBUS not connected, exiting...")
-                keepLooping = False
+                log.error("MODBUS error count exceeded, exiting...")
+                doStop = True
             
             if not mqttConnected:
                 if (mqttErrorCount > MQTT_MAX_ERROR_COUNT):
                     log.error("MQTT Error count exceeded, disconnected, exiting...")
-                    keepLooping = False
+                    doStop = True
 
         except KeyboardInterrupt:
             log.error("Got Keyboard Interuption, exiting...")
@@ -312,8 +339,10 @@ def run(argv):
             log.error("Caught other exception...")
             log.exception(e, exc_info=True)
     
+    log.info("Exited the main loop, stopping other loops")
     log.info("Stopping periodic async...")
-    tl.stop()
+    periodic_stop.set()
+
     log.info("Stopping MQTT loop...")
     mqttClient.loop_stop()
 
