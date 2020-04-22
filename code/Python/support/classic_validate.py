@@ -34,8 +34,10 @@ def validateIntParameter(param, name, defaultValue):
 # --------------------------------------------------------------------------- # 
 # Handle the command line arguments
 # --------------------------------------------------------------------------- # 
-def handleArgs(argv,argVals, MIN_WAKE_DURATION_SECS):
+def handleArgs(argv,argVals):
 
+    from classic_mqtt import MAX_WAKE_RATE, MIN_WAKE_RATE, MIN_WAKE_PUBLISHES
+    
     try:
       opts, args = getopt.getopt(argv,"h",
                     ["classic=",
@@ -48,15 +50,15 @@ def handleArgs(argv,argVals, MIN_WAKE_DURATION_SECS):
                      "mqtt_pass=",
                      "wake_publish_rate=",
                      "snooze_publish_rate=",
-                     "wake_duration="])
+                     "wake_publishes="])
     except getopt.GetoptError:
-        print("Error parsing command line parameters, please use: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_duration <{}>".format( \
-                    argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishCycleLimit'], argVals['snoozePublishCycleLimit'], int(argVals['awakePublishLimit']*argVals['awakePublishCycleLimit'])))
+        print("Error parsing command line parameters, please use: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}>".format( \
+                    argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("Parameter help: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_duration <{}>".format( \
-                    argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishCycleLimit'], argVals['snoozePublishCycleLimit'], int(argVals['awakePublishLimit']*argVals['awakePublishCycleLimit'])))
+            print ("Parameter help: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}>".format( \
+                    argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
             sys.exit()
         elif opt in ('--classic'):
             argVals['classicHost'] = validateURLParameter(arg,"classic",argVals['classicHost'])
@@ -75,18 +77,29 @@ def handleArgs(argv,argVals, MIN_WAKE_DURATION_SECS):
         elif opt in ("--mqtt_pass"):
             argVals['mqttPassword'] = validateStrParameter(arg,"mqtt_pass", argVals['mqttPassword'])
         elif opt in ("--wake_publish_rate"):
-            argVals['awakePublishCycleLimit'] = int(validateIntParameter(arg,"wake_publish_rate", argVals['awakePublishCycleLimit']))
+            argVals['awakePublishRate'] = int(validateIntParameter(arg,"wake_publish_rate", argVals['awakePublishRate']))
         elif opt in ("--snooze_publish_rate"):
-            argVals['snoozePublishCycleLimit'] = int(validateIntParameter(arg,"snooze_publish_rate", argVals['snoozePublishCycleLimit']))
-        elif opt in ("--wake_duration"):
-            argVals['awakePublishLimit'] = int(validateIntParameter(arg,"wake_durations_secs", argVals['awakePublishLimit']*argVals['awakePublishCycleLimit'])/argVals['awakePublishCycleLimit'])
+            argVals['snoozePublishRate'] = int(validateIntParameter(arg,"snooze_publish_rate", argVals['snoozePublishRate']))
+        elif opt in ("--wake_publishes"):
+            argVals['awakePublishLimit'] = int(validateIntParameter(arg,"wake_publishes", argVals['awakePublishLimit']))
 
     #Validate the wake/snooze stuff
-    if (argVals['snoozePublishCycleLimit'] < argVals['awakePublishCycleLimit']):
+    if (argVals['snoozePublishRate'] < argVals['awakePublishRate']):
         print("--wake_publish_rate must be less than or equal to --snooze_publish_rate")
         sys.exit()
-    if ((argVals['awakePublishLimit']*argVals['awakePublishCycleLimit'])<MIN_WAKE_DURATION_SECS):
-        print("--wake_duration must be greater than {} seconds".format(MIN_WAKE_DURATION_SECS))
+    
+    if ((argVals['snoozePublishRate'] % argVals['awakePublishRate']) != 0):
+        log.info("Set --snooze_publish_rate to an even multiple of --wake_publish_rate for most accurate timing of snooze cycles")
+
+    if ((argVals['awakePublishRate'])<MIN_WAKE_RATE):
+        print("--wake_publish_rate must be greater than or equal to {} seconds".format(MIN_WAKE_RATE))
+        sys.exit()
+    elif ((argVals['awakePublishRate'])>MAX_WAKE_RATE):
+        print("--wake_publish_rate must be less than or equal to {} seconds".format(MAX_WAKE_RATE))
+        sys.exit()
+
+    if ((argVals['awakePublishLimit'])<MIN_WAKE_PUBLISHES):
+        print("--wake_publishes must be greater than {} publishes".format(MIN_WAKE_PUBLISHES))
         sys.exit()
 
     argVals['classicHost'] = argVals['classicHost'].strip()
@@ -105,8 +118,8 @@ def handleArgs(argv,argVals, MIN_WAKE_DURATION_SECS):
     log.info("mqttUser = {}".format(argVals['mqttUser']))
     log.info("mqttPassword = **********")
     #log.info("mqttPassword = {}".format("mqttPassword"))
-    log.info("awakePublishCycleLimit = {}".format(argVals['awakePublishCycleLimit']))
-    log.info("snoozePublishCycleLimit = {}".format(argVals['snoozePublishCycleLimit']))
+    log.info("awakePublishRate = {}".format(argVals['awakePublishRate']))
+    log.info("snoozePublishRate = {}".format(argVals['snoozePublishRate']))
     log.info("awakePublishLimit = {}".format(argVals['awakePublishLimit']))
 
     #Make sure the last character in the root is a "/"

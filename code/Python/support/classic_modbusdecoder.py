@@ -15,7 +15,6 @@ from collections import OrderedDict
 import logging
 import sys
 
-
 log = logging.getLogger('classic_mqtt')
 
 # --------------------------------------------------------------------------- # 
@@ -148,35 +147,56 @@ def doDecode(addr, decoder):
 # Open the cleint, read in the register, close the client, decode the data, 
 # combine it and return it 
 # --------------------------------------------------------------------------- # 
-def getModbusData(classicHost, classicPort):
+
+modbusClient = None
+isConnected = False
+
+def getModbusData(modeAwake, classicHost, classicPort):
+    
+    global isConnected, modbusClient
 
     try:
-        modclient = ModbusClient(classicHost, port=classicPort)
-        #Test for succesful connect, if not, log error and mark modbusConnected = False
-        modclient.connect()
+        if not isConnected:
+            log.debug("Opening the modbus Connection")
+            if modbusClient is None:
+                modbusClient = ModbusClient(host=classicHost, port=classicPort)
+    
+            #Test for succesful connect, if not, log error and mark modbusConnected = False
+            modbusClient.connect()
 
-        result = modclient.read_holding_registers(4163, 2,  unit=10)
-        if result.isError():
-            # close the client
-            log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
-            modclient.close()
-            return {}
+            result = modbusClient.read_holding_registers(4163, 2,  unit=10)
+            if result.isError():
+                # close the client
+                log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
+                modbusClient.close()
+                isConnected = False
+                return {}
+
+            isConnected = True
 
         theData = {}
         #Read in all the registers at one time
-        theData[4100] = getRegisters(theClient=modclient,addr=4100,count=44)
-        theData[4360] = getRegisters(theClient=modclient,addr=4360,count=22)
-        theData[4163] = getRegisters(theClient=modclient,addr=4163,count=2)
-        theData[4209] = getRegisters(theClient=modclient,addr=4209,count=4)
-        theData[4243] = getRegisters(theClient=modclient,addr=4243,count=32)
-        theData[16386]= getRegisters(theClient=modclient,addr=16386,count=4)
-        modclient.close()
+        theData[4100] = getRegisters(theClient=modbusClient,addr=4100,count=44)
+        theData[4360] = getRegisters(theClient=modbusClient,addr=4360,count=22)
+        theData[4163] = getRegisters(theClient=modbusClient,addr=4163,count=2)
+        theData[4209] = getRegisters(theClient=modbusClient,addr=4209,count=4)
+        theData[4243] = getRegisters(theClient=modbusClient,addr=4243,count=32)
+        theData[16386]= getRegisters(theClient=modbusClient,addr=16386,count=4)
+        
+        #If we are snoozing, then give up the connection
+        #log.debug("modeAwake:{}".format(modeAwake))
+        if not modeAwake :
+            log.debug("Closing the modbus Connection, we are in Snooze mode")
+            modbusClient.close()
+            isConnected = False
 
     except: # Catch all modbus excpetions
         e = sys.exc_info()[0]
         log.error("MODBUS Error H:{} P:{} e:{}".format(classicHost, classicPort, e))
         try:
-            modclient.close()
+            modbusClient.close()
+            isConnected = False
+
         except:
             log.error("MODBUS Error on close H:{} P:{}".format(classicHost, classicPort))
 
