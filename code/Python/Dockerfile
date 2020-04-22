@@ -1,6 +1,6 @@
 FROM python:3.7.6-slim-stretch
 
-RUN pip install --no-cache-dir pymodbus paho-mqtt timeloop
+RUN pip install --no-cache-dir pymodbus paho-mqtt
 
 ADD classic_mqtt.py /
 ADD support/*.py support/
