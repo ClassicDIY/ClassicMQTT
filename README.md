@@ -33,7 +33,7 @@ Please refer to the <a href="https://github.com/ClassicDIY/ClassicMQTT/wiki">Cla
 <h3>Classic Monitor MQTT Subscriber app for Android is available here.</h3>
 
 <p>
-  https://drive.google.com/drive/folders/1S2BWLFn_nU0NmxXmyhJaz97h0K1_OY6B
+  https://drive.google.com/drive/folders/1FPijqIw0VuKCE0gOxg3Z0YIddFnxmAuN?usp=sharing
 </p>
 
 <p>
