@@ -202,7 +202,7 @@ float GetFloatValue(int index, uint8_t *data, float div = 1.0)
 uint8_t GetMSBValue(int index, uint8_t *data)
 {
 	index *= 2;
-	return (data[index] >> 8);
+	return (data[index]);
 }
 
 boolean GetFlagValue(int index, uint16_t mask, uint8_t *data)
