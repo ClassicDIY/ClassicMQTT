@@ -12,7 +12,23 @@
   state_topic: ClassicMQTT/classic/stat/readings
   value_template: '{{ value_json.ChargeState }}'
   qos: 0
-  
+
+- platform: mqtt
+  name: ClassicMQTT_ChargeStateText
+  state_topic: ClassicMQTT/classic/stat/readings
+  value_template: >
+    {{ {
+      0: "Resting",
+      3: "Absorb",
+      4: "Bulk MPPT",
+      5: "Float",
+      6: "Float MPPT",
+      7: "Equalize",
+      10: "HyperVOC",
+      18: "Equalize MPPT"}[value_json.ChargeState]
+    }}
+  qos: 0
+
 - platform: mqtt
   name: ClassicMQTT_BatCurrent
   state_topic: ClassicMQTT/classic/stat/readings
