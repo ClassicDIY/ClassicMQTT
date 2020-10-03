@@ -14,7 +14,7 @@
 #define WAKE_PUBLISH_RATE 2000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.3.2" // major.minor.build (major or minor will invalidate the configuration)
+#define CONFIG_VERSION "V1.3.3" // major.minor.build (major or minor will invalidate the configuration)
 #define NUMBER_CONFIG_LEN 6
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
