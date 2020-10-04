@@ -4,6 +4,7 @@
 |---|---|
 
 [![HitCount](http://hits.dwyl.com/ClassicDIY/ClassicMQTT.svg)](http://hits.dwyl.com/ClassicDIY/ClassicMQTT)
+
 [![GitHub All Releases](https://img.shields.io/github/downloads/ClassicDIY/ClassicMQTT/total.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ClassicDIY/ClassicMQTT.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/releases)
 [![GitHub issues](https://img.shields.io/github/issues-raw/ClassicDIY/ClassicMQTT.svg?style=for-the-badge)](https://github.com/ClassicDIY/ClassicMQTT/issues)
