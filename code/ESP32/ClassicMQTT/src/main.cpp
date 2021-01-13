@@ -46,7 +46,7 @@ IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort"
 IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
 IotWebConfParameter mqttRootTopicParam = IotWebConfParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
+IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate (S)", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
@@ -638,6 +638,7 @@ void setup()
 		}
 		EEPROM.commit();
 		EEPROM.end();
+		_iotWebConf.resetWifiAuthInfo();
 		logw("Factory Reset!");
 	}
 	mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(5000), pdFALSE, (void *)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
