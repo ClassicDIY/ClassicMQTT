@@ -14,12 +14,21 @@ def validateStrParameter(param, name, defaultValue):
 
 def validateURLParameter(param, name, defaultValue):
     try:
-        socket.gethostbyname(param)
-        return param
-    except Exception as e:
+        assert len(param) < 255
+        # Permit name to end with a single dot.
+        hostname = param[:-1] if param.endswith('.') else param
+        # check each hostname segment
+        allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+        assert all(allowed.match(s) for s in hostname.split("."))
+    except:
         log.error("Invalid parameter, {} passed for {}".format(param, name))
-        log.exception(e, exc_info=False)
         return defaultValue
+    try:
+        socket.gethostbyname(param)
+    except Exception as e:
+        log.warning("Name resolution failed for {} passed for {}".format(param, name))
+        log.exception(e, exc_info=False)
+    return param
 
 def validateIntParameter(param, name, defaultValue):
     try: 
