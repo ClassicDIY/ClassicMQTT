@@ -1,0 +1,12 @@
+services:
+  classic_mqtt:
+    container_name: classic_mqtt
+    image: classicdiy/classicmqtt
+    restart: unless-stopped
+    environment:
+      - LOGLEVEL=DEBUG
+    depends_on:
+      - mosquitto
+    networks:
+      - iotstack_nw
+    command: "--classic_name ${CLASSIC_NAME} --classic ${CLASSIC} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${MQTT_ROOT} --mqtt_user ${MQTT_USER} --mqtt_pass ${MQTT_PASS}"
