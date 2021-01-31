@@ -40,8 +40,9 @@ MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
 argumentValues = { \
-    'classicHost':"ClassicHost", 'classicPort':"502", 'classicName':"classic", \
-    'mqttHost':"127.0.0.1", 'mqttPort':"1883", 'mqttRoot':"ClassicMQTT", 'mqttUser':"username", 'mqttPassword':"password", \
+    'classicHost':os.getenv('CLASSIC', "ClassicHost"), 'classicPort':os.getenv('CLASSIC_PORT', "502"), 'classicName':os.getenv('CLASSIC_NAME', "classic"), \
+    'mqttHost':os.getenv('MQTT_HOST', "127.0.0.1"), 'mqttPort':os.getenv('MQTT_PORT', "1883"), \
+    'mqttRoot':os.getenv('MQTT_ROOT', "ClassicMQTT"), 'mqttUser':os.getenv('MQTT_USER', "ClassicPublisher"), 'mqttPassword':os.getenv('MQTT_PASS', "ClassicPub123"), \
     'awakePublishRate':DEFAULT_WAKE_RATE, \
     'snoozePublishRate':DEFAULT_SNOOZE_RATE, \
     'awakePublishLimit':DEFAULT_WAKE_PUBLISHES}
