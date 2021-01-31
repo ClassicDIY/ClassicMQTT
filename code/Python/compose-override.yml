@@ -17,8 +17,8 @@ services:
       - iotstack_nw
 
 # uncomment the following block if you have a second classic, change the CLASSIC ip address and CLASSIC_NAME
-#  classic_mqtt:
-#    container_name: classic_mqtt
+#  classic_mqtt2:
+#    container_name: classic_mqtt2
 #    image: classicdiy/classicmqtt
 #    restart: unless-stopped
 #    environment:
