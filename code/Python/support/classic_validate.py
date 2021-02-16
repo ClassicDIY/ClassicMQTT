@@ -1,6 +1,7 @@
 import socket
 import logging
 import sys, getopt
+import os
 
 
 log = logging.getLogger('classic_mqtt')
@@ -38,6 +39,54 @@ def handleArgs(argv,argVals):
 
     from classic_mqtt import MAX_WAKE_RATE, MIN_WAKE_RATE, MIN_WAKE_PUBLISHES
     
+    # Get all the environment variable first, and then over-ride with arguments.
+
+
+    envSetting = os.environ.get('CLASSIC')
+    if envSetting != None:
+        argVals['classicHost'] = validateURLParameter(envSetting, 'CLASSIC', argVals['classicHost'])
+
+    envSetting = os.environ.get('CLASSIC_PORT')
+    if envSetting != None:
+        argVals['classicPort'] = validateIntParameter(envSetting, 'CLASSIC_PORT',argVals['classicPort'])
+
+    envSetting = os.environ.get('CLASSIC_NAME')
+    if envSetting != None:
+        argVals['classicName'] = validateStrParameter(envSetting,'CLASSIC_NAME',argVals['classicName'])
+
+    envSetting = os.environ.get('MQTT')
+    if envSetting != None:
+        argVals['mqttHost'] = validateURLParameter(envSetting,"MQTT",argVals['mqttHost'])
+
+    envSetting = os.environ.get('MQTT_PORT')
+    if envSetting != None:
+        argVals['mqttPort'] = validateIntParameter(envSetting,"MQTT_PORT", argVals['mqttPort'])
+
+    envSetting = os.environ.get('MQTT_ROOT')
+    if envSetting != None:
+        argVals['mqttRoot'] = validateStrParameter(envSetting,"MQTT_ROOT", argVals['mqttRoot'])
+
+    envSetting = os.environ.get('MQTT_USER')
+    if envSetting != None:
+        argVals['mqttUser'] = validateStrParameter(envSetting,"MQTT_USER", argVals['mqttUser'])
+
+    envSetting = os.environ.get('MQTT_PASS')
+    if envSetting != None:
+        argVals['mqttPassword'] = validateStrParameter(envSetting,"MQTT_PASS", argVals['mqttPassword'])
+
+    envSetting = os.environ.get('AWAKE_PUBLISH_RATE')
+    if envSetting != None:
+        argVals['awakePublishRate']  = int(validateIntParameter(envSetting,"AWAKE_PUBLISH_RATE", argVals['awakePublishRate']))
+
+    envSetting = os.environ.get('SNOOZE_PUBLISH_RATE')
+    if envSetting != None:
+        argVals['snoozePublishRate'] = int(validateIntParameter(envSetting,"SNOOZE_PUBLISH_RATE", argVals['snoozePublishRate']))
+
+    envSetting = os.environ.get('AWAKE_PUBLISH_LIMIT')
+    if envSetting != None:
+        argVals['awakePublishLimit'] = int(validateIntParameter(envSetting,"AWAKE_PUBLISH_LIMIT", argVals['awakePublishLimit']))
+
+
     try:
       opts, args = getopt.getopt(argv,"h",
                     ["classic=",
@@ -116,8 +165,8 @@ def handleArgs(argv,argVals):
     log.info("mqttPort = {}".format(argVals['mqttPort']))
     log.info("mqttRoot = {}".format(argVals['mqttRoot']))
     log.info("mqttUser = {}".format(argVals['mqttUser']))
-    log.info("mqttPassword = **********")
-    #log.info("mqttPassword = {}".format("mqttPassword"))
+    #log.info("mqttPassword = **********")
+    log.info("mqttPassword = {}".format(argVals['mqttPassword']))
     log.info("awakePublishRate = {}".format(argVals['awakePublishRate']))
     log.info("snoozePublishRate = {}".format(argVals['snoozePublishRate']))
     log.info("awakePublishLimit = {}".format(argVals['awakePublishLimit']))
