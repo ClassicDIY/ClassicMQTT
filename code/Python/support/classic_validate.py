@@ -39,9 +39,7 @@ def handleArgs(argv,argVals):
 
     from classic_mqtt import MAX_WAKE_RATE, MIN_WAKE_RATE, MIN_WAKE_PUBLISHES
     
-    # Get all the environment variable first, and then over-ride with arguments.
-
-
+    # Get all the environment variables first, and then over-ride with arguments.
     envSetting = os.environ.get('CLASSIC')
     if envSetting != None:
         argVals['classicHost'] = validateURLParameter(envSetting, 'CLASSIC', argVals['classicHost'])
@@ -165,8 +163,8 @@ def handleArgs(argv,argVals):
     log.info("mqttPort = {}".format(argVals['mqttPort']))
     log.info("mqttRoot = {}".format(argVals['mqttRoot']))
     log.info("mqttUser = {}".format(argVals['mqttUser']))
-    #log.info("mqttPassword = **********")
-    log.info("mqttPassword = {}".format(argVals['mqttPassword']))
+    log.info("mqttPassword = **********")
+    #log.info("mqttPassword = {}".format(argVals['mqttPassword']))
     log.info("awakePublishRate = {}".format(argVals['awakePublishRate']))
     log.info("snoozePublishRate = {}".format(argVals['snoozePublishRate']))
     log.info("awakePublishLimit = {}".format(argVals['awakePublishLimit']))

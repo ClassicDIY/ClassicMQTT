@@ -88,14 +88,17 @@ Use this method if you want to automatically install an MQTT broker (mosquitto) 
 Note: if you need to change anything in the yml file or the ".env" file, you need to tell docker-compose to rebuild the images with the command listed in step 4 below.  
 
 1. Install docker and docker-compose on your host - look this up on the web and follow the instructions for your computer.
-2. Create the .env file and specify the 5 items listed below in this format. They correspond to the parameters for the classic_mqtt.py program. Notice that since we are bringing up our own MQTT Broker, we can skip specifying the MQTT host. The last 3 parameters will work with the included MQTT broker, so there is no need to change those. To create this file on the Raspberry Pi, I like nano.
+2. In the classic_mqtt_compose.yml file, you can set envirnment variables needed to run the program. Edit the yml to set them to the needed values. They correspond to the parameters for the classic_mqtt.py program. To edit this file on the Raspberry Pi, I like nano.
     ```
-    CLASSIC=<IP address or URL>  
-    CLASSIC_PORT=<Port usually 502>
-    CLASSIC_NAME=Classic
-    MQTT_ROOT=ClassicMQTT 
-    MQTT_USER=ClassicPublisher 
-    MQTT_PASS=ClassicPub123
+      - LOGLEVEL=DEBUG
+      - CLASSIC=<The URL or IP address of your classic>
+      - CLASSIC_PORT=<The port of your classic, usually 502>
+      - CLASSIC_NAME=<The name of your classic, usually classic>
+      - MQTT=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_ROOT=ClassicMQTT
+      - MQTT_USER=ClassicPublisher
+      - MQTT_PASS=ClassicPub123
     ```
 3. Tell docker-compose to download, build and start up the both mosquitto and the script with the following command.
     ```
