@@ -7,7 +7,7 @@ The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or impli
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
 
 version 1.0.2
-As the name implies, this tool is implemeted in Python and is meant to run on a computer system that can reach your Midnite Classic Solar MPPT Controller and an MQTT broker over a network. Once launched, the program will periodically connect to the Classic using TCP based MODBUS then upload that data to an MQTT broker where it is availabe for subscription from other programs or apps. An example installation would be a Raspberry Pi running on the local network with the Classic and pushing the data to either a local MQTT broker or one the internet. 
+As the name implies, this tool is implemented in Python and is meant to run on a computer system that can reach your Midnite Classic Solar MPPT Controller and an MQTT broker over a network. Once launched, the program will periodically connect to the Classic using TCP based MODBUS then upload that data to an MQTT broker where it is available for subscription from other programs or apps. An example installation would be a Raspberry Pi running on the local network with the Classic and pushing the data to either a local MQTT broker or one the internet. 
 
 ## **Get It**
 
@@ -28,7 +28,7 @@ When it comes time to run the program, there are parameters that can be set or p
 --mqtt_port <1883>              : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
 --mqtt_root <ClassicMQTT>       : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
 --mqtt_user <username>          : The username to access the MQTT Broker.  
---mqtt_pass <password>          : The passowrd to access the MQTT Broker.
+--mqtt_pass <password>          : The password to access the MQTT Broker.
 --wake_publish_rate <5>         : The amount of seconds between updates when in wake mode (default is 5 seconds).
 --snooze_publish_rate <300>     : The amount of seconds between updates when in snooze mode (default is 5 minutes).
 --wake_duration <300>           : The amount of seconds to stay in wake mode after reciving an "info" or "wake" message (default is 5 minutes).
@@ -72,7 +72,7 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
     ```
     docker build -t classic_mqtt .
     ```
-4. Run the docker image and pass the parameters (substituing the correct values for parameter values):  
+4. Run the docker image and pass the parameters (substituting the correct values for parameter values):  
     ```
     docker run classic_mqtt --classic <ClassicHost> --classic_port <502> --classic_name <Classic> --mqtt <127.0.0.1> --mqtt_port <1883> --mqtt_root <ClassicMQTT> --mqtt_user <username> --mqtt_pass <password>
     ```
@@ -84,7 +84,7 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
 
 ### **3. Using docker-compose**
 
-Use this method if you want to automatically install an MQTT broker (mosquitto) locally and run the program at the same time. This method takes advantage of docker-compose which will build a system that includes both an MQTT service and a service running the classic_mqtt.py script automatically. The definition for thse services are in classic_mqtt_compose.yml. If you are pushing your data to the internet, this may not be the preferred method for you.
+Use this method if you want to automatically install an MQTT broker (mosquitto) locally and run the program at the same time. This method takes advantage of docker-compose which will build a system that includes both an MQTT service and a service running the classic_mqtt.py script automatically. The definition for these services are in classic_mqtt_compose.yml. If you are pushing your data to the internet, this may not be the preferred method for you.
 Note: if you need to change anything in the yml file or the ".env" file, you need to tell docker-compose to rebuild the images with the command listed in step 4 below.  
 
 1. Install docker and docker-compose on your host - look this up on the web and follow the instructions for your computer.
