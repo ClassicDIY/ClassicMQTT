@@ -273,9 +273,9 @@ def run(argv):
                     ageStr = file_age(argumentValues['file'])
 
                     wr = open(argumentValues['file'], 'w')
-                    wr.write(" Battery SOC: {}%\n".format(SOC))
-                    wr.write("       Volts: {}V\n".format(batVolts))
-                    wr.write("     Current: {}A\n".format(batCurrent))
+                    wr.write("Battery SOC: {}%\n".format(SOC))
+                    wr.write("Volts: {}V\n".format(batVolts))
+                    wr.write("Current: {}A\n".format(batCurrent))
                     wr.write("Battery Temp: {}C/{}F\n".format(batTempC,batTempF))
                     wr.write("     as of {} ago.\n".format(ageStr))
                     wr.close()
