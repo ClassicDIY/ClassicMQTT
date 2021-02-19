@@ -1,7 +1,7 @@
 
 # Classic MQTT Client Example
 
-The code in this folder is and example of how to create and mqtt cleint that receives data that was posted to the MQTT from ClassicMQTT. It is very simple, just creating an MQTT client and making a subscription which will let it receive the data from MQTT as it is posted. This simple program just creates a file and rewites it with the data from the last update.  
+The code in this folder is and example of how to create and mqtt cleint that receives data that was posted to the MQTT from ClassicMQTT. It is very simple, just creating an MQTT client and making a subscription. When the client recceives data it will rewite it with the data received.  
 
 The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or implied.
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
@@ -27,7 +27,7 @@ There are several ways to run this program:
 
 ### **1. Standalone**
 
-Make sure that you have access to the MQTT broker where the ClassicMQTT system is posting the data.  
+Make sure that you have access to the MQTT server where the ClassicMQTT system is posting the data.  
 
 1. Install Python 3.7 or newer and pip. Consult the documentation for your particular computer.
 2. Install this library: **paho-mqtt** using pip:  
@@ -46,7 +46,7 @@ Make sure that you have access to the MQTT broker where the ClassicMQTT system i
 
 ### **2. Using docker**
 
-Using the "Dockerfile" in this directory will allow an image to be built that can run the program. The Dockerfile uses a base image that already includes python and instructions to install the needed library so you can skip installing python and pip, but you must install docker.  
+Using the "Dockerfile" in this directory will allow an image to be built so that a container can be run that runs the program. The Dockerfile uses a base image that already includes python and instructs it to install the needed library so you do not need to install python and pip, but you must install docker.  
 
 1. Install docker on your host - look this up on the web and follow the instructions for your computer.
 2. Issue the following command in this directory to build the docker image in the docker virtual environment (only need to do this once):
@@ -61,15 +61,13 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
     ```
     docker run classic_mqtt_client --classic_name classic --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com --mqtt_user joe.user@gmail.com --mqtt_pass <Joe's Dioty password> --file ./client_output_file.txt
     ```
-5. A real world example where we connect to the MQTT server that is running in the docker container created by the docker-compose in classic_mqtt. This is the command you might use.
+5. For a real world example where connecting to the MQTT server that is running in the docker container created by the docker-compose in classic_mqtt you might use the following.
     ```
     sudo docker run --network python_localnet -e TZ=America/New_York -v /home/pi/classic_mqtt_client_files/:/files/ classic_mqtt_client --file /files/power_status.txt
     ```  
     Lets go over each of these:
-    ```
-    --network python_localnet --> this tels the docker container to use the network that classic_mqtt and mosquitto are using as defined in their docker-compose file
-    -e TZ=America/New_York --> this passes an envronment variable into the container to get it to use the correct time zone.
-    -v /home/pi/classic_mqtt_client_files/:/files/ --> this tells the container to use a volume so that when the tool writes out the file, it can be accessed by a program running on the host (and not in a container)
-    classic_mqtt_client --> the default parameters will work when connecting to classic_mqtt started from docker-compose.
-    --file /files/power_status.txt --> this parameter tells the client to write the file out to /files/power_status.txt and since /files is mapped to the /home/pi/classic_mqtt_client_files directory by the -v, the file will appear there when written in the container.
-    ```
+    * **--network python_localnet** --> this tels the docker container to use the network that classic_mqtt and mosquitto are using as defined in their docker-compose file
+    * **-e TZ=America/New_York** --> this passes an envronment variable into the container to get it to use the correct time zone.
+    * **-v /home/pi/classic_mqtt_client_files/:/files/** --> this tells the container to use a volume so that when the tool writes out the file, it can be accessed by a program running on the host (and not in a container)
+    * **classic_mqtt_client** --> the default parameters will work when connecting to classic_mqtt started from docker-compose.
+    * **--file /files/power_status.txt** --> this parameter tells the client to write the file out to /files/power_status.txt and since /files is mapped to the /home/pi/classic_mqtt_client_files directory by the -v, the file will appear there when written in the container.
