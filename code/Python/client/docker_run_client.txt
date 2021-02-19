@@ -1,0 +1,1 @@
+sudo docker run --network python_localnet -e TZ=America/New_York -v /home/pi/classic_mqtt_client_files/:/files/ classic_mqtt_client --classic_name classic --mqtt mosquitto --mqtt_root ClassicMQTT --mqtt_port 1883 --mqtt_user ClassicClient --mqtt_pass ClassicClient123 --file /files/power_status.txt

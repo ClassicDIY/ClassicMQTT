@@ -47,9 +47,9 @@ There are several ways to run this program:
 Make sure that you have access to an MQTT broker; either install one on your server or use one of the internet based ones like [Dioty](http://www.dioty.co/). Once you have that setup, make sure that you have a username and password defined, you will need it to both publish data and to get the data once it is published.  
 
 1. Install Python 3.7 or newer and pip. Consult the documentation for your particular computer.
-2. Install these libraries: **pymodbus**, **paho-mqtt**, **timeloop** using pip:  
+2. Install these libraries: **pymodbus**, **paho-mqtt** using pip:  
     ```
-    pip install pymodbus paho-mqtt timeloop
+    pip install pymodbus paho-mqtt
     ```   
 3. Install or setup access to an MQTT server like [Dioty](http://www.dioty.co/).  Make sure that you have a username and password defined
 4. Run the program from the command line where the classic_mqtt.py is located with t eproper parameters:  

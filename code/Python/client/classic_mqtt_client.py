@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
 from paho.mqtt import client as mqttclient
 from collections import OrderedDict
 import json
@@ -13,8 +12,8 @@ import sys
 from random import randint, seed
 from enum import Enum
 from time import time_ns
-from datetime import datetime
-from support.classic_validate import handleClientArgs
+from datetime import datetime, timedelta
+from classic_client_validate import handleClientArgs
 
 
 # --------------------------------------------------------------------------- # 
@@ -28,14 +27,14 @@ MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 # Default startup values. Can be over-ridden by command line options.
 # --------------------------------------------------------------------------- # 
 argumentValues = { \
-    'classicName':"classic", \
-    'mqttHost':"127.0.0.1", \
-    'mqttPort':"1883", \
-    'mqttRoot':"ClassicMQTT", \
-    'mqttUser':"username", \
-    'mqttPassword':"password", \
-    'file':"./classic_client_data.txt"}
-
+    'classicName':os.getenv('CLASSIC_NAME', "classic"), \
+    'mqttHost':os.getenv('MQTT_HOST', "mosquitto"), \
+    'mqttPort':os.getenv('MQTT_PORT', "1883"), \
+    'mqttRoot':os.getenv('MQTT_ROOT', "ClassicMQTT"), \
+    'mqttUser':os.getenv('MQTT_USER', "ClassicClient"), \
+    'mqttPassword':os.getenv('MQTT_PASS', "ClassicClient123"), \
+    'file':os.getenv('FILE',"./classic_client_data.txt")}
+ 
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
 # --------------------------------------------------------------------------- # 
@@ -56,7 +55,7 @@ if not log.handlers:
     formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s:%(message)s')
     handler.setFormatter(formatter)
     log.addHandler(handler) 
-    log.setLevel(os.environ.get("LOGLEVEL", "DEBUG"))
+    log.setLevel(os.getenv('LOGLEVEL', "DEBUG"))
 
 # --------------------------------------------------------------------------- # 
 # MQTT On Connect function
@@ -102,17 +101,17 @@ def on_message(client, userdata, message):
         #print("Received message '" + str(message.payload) + "' on topic '"
         #+ message.topic + "' with QoS " + str(message.qos))
 
-        global mqttConnected, mqttErrorCount, newMsg, newDataReceived
+        global mqttConnected, mqttErrorCount, newMsg
 
         mqttConnected = True #got a message so we must be up again...
         mqttErrorCount = 0
 
-        #JSON messages
+        #Convert the JSON message to a Python object
         theMessage = json.loads(message.payload.decode(encoding='UTF-8'))
         #log.debug(theMessage)
         
-        #The message should be a "readings" packet, so get the data out and write it to the file.
-        #We only care about the values with -->> next to them.
+        #The message should be a "readings" packet, 
+        #we only care about the values with -->> next to them.
         #{
         # -->>"BatTemperature":-10.4,
         # "NetAmpHours":1,
@@ -143,15 +142,24 @@ def on_message(client, userdata, message):
         # "ShuntTemperature":-6.0,
         # "PCBTemperature":20.1}
 
-       #Get the values we care about
-        # -->>"BatTemperature":-10.4,
-        # -->>"BatVoltage":26.7,
-        # -->>"WhizbangBatCurrent":0.8,
-        # -->>"SOC":97,
-
         newMsg = theMessage
 
-            
+# --------------------------------------------------------------------------- # 
+# File age check
+# --------------------------------------------------------------------------- # 
+def is_file_older_than (file, delta): 
+    if not os.path.exists(file):
+        log.debug("File does not exist, returning True")
+        return True
+    
+    cutoff = datetime.utcnow() - delta
+    mtime = datetime.utcfromtimestamp(os.path.getmtime(file))
+    if mtime < cutoff:
+        log.debug("File is too old, returning True")
+        return True
+
+    log.debug("File is recent, returning False")
+    return False          
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -160,8 +168,7 @@ def run(argv):
 
     global doStop, mqttClient, mqttConnected, mqttErrorCount, newMsg
 
-
-    log.info("classic_mqtt starting up...")
+    log.info("classic_mqtt_client starting up...")
 
     handleClientArgs(argv, argumentValues)
 
@@ -169,6 +176,13 @@ def run(argv):
     seed(int.from_bytes( os.urandom(4), byteorder="big"))
 
     mqttErrorCount = 0
+
+    #If there is no file there, or the file is older than 10 minutes
+    #write out a message in the file saying that system has not yet received data.
+    if is_file_older_than(argumentValues['file'], timedelta(minutes=10)):
+        log.info("File is old or not there, writing one out with a message...")
+        wr = open(argumentValues['file'], 'w')
+        wr.write("No data received as of {}\n".format(datetime.now().strftime("%c")))
 
     #setup the MQTT Client for publishing and subscribing
     clientId = argumentValues['mqttUser'] + "_mqttclient_" + str(randint(100, 999))
@@ -207,6 +221,13 @@ def run(argv):
                 if newMsg != None:
                     currentMsg = newMsg
                     newMsg = None
+                    
+                    #Get the values we care about
+                    # -->>"BatTemperature":-10.4,
+                    # -->>"BatVoltage":26.7,
+                    # -->>"WhizbangBatCurrent":0.8,
+                    # -->>"SOC":97,
+      
                     batTemp = currentMsg['BatTemperature']
                     batVolts = currentMsg['BatVoltage']
                     batCurrent = currentMsg['WhizbangBatCurrent']
@@ -226,7 +247,7 @@ def run(argv):
                     wr.write("Volts: {}V; ".format(batVolts))
                     wr.write("Current: {}A; ".format(batCurrent))
                     wr.write("Bat. Temp: {}C; ".format(batTemp))
-                    wr.write("as of {}".format(dt_string))
+                    wr.write("as of {}\n".format(dt_string))
                     wr.close()
 
         except KeyboardInterrupt:
