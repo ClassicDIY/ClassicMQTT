@@ -61,7 +61,7 @@ Using the "Dockerfile" in this directory will allow an image to be built so that
     ```
     docker run classic_mqtt_client --classic_name classic --mqtt mqtt.dioty.co --mqtt_root /joe.user@gmail.com --mqtt_user joe.user@gmail.com --mqtt_pass <Joe's Dioty password> --file ./client_output_file.txt
     ```
-5. For a real world example where connecting to the MQTT server that is running in the docker container created by the docker-compose in classic_mqtt you might use the following.
+5. For a real world example connecting to the MQTT server that is running in the docker container created by the docker-compose in classic_mqtt you might use the following.
     ```
     sudo docker run --network python_localnet -e TZ=America/New_York -v /home/pi/classic_mqtt_client_files/:/files/ classic_mqtt_client --file /files/power_status.txt
     ```  
