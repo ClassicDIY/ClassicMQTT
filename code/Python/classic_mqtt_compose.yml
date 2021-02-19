@@ -24,16 +24,16 @@ services:
     build: .
     environment:
       - LOGLEVEL=DEBUG
-      - CLASSIC=4.tcp.ngrok.io
-      - CLASSIC_PORT=18019
+      - CLASSIC=192.168.0.225
+      - CLASSIC_PORT=502
       - CLASSIC_NAME=classic
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
       - MQTT_ROOT=ClassicMQTT
       - MQTT_USER=ClassicPublisher
       - MQTT_PASS=ClassicPub123
-      - AWAKE_PUBLISH_RATE=5
-      - SNOOZE_PUBLISH_RATE=15 #for testing
+      #- AWAKE_PUBLISH_RATE=5
+      #- SNOOZE_PUBLISH_RATE=15 #for testing
       #- AWAKE_PUBLISH_LIMIT=count
 
     depends_on:

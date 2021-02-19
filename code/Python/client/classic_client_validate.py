@@ -3,17 +3,17 @@ import logging
 import sys, getopt
 import os
 
+log = logging.getLogger('classic_mqtt_client')
 
-
-def validateStrParameter(param, name, defaultValue, log):
-    if isinstance(param, str): 
+def validateStrParameter(param, name, defaultValue):
+    if isinstance(param, str):
         return param
     else:
         log.error("Invalid parameter, {} passed for {}".format(param, name))
         return defaultValue
 
 
-def validateHostnameParameter(param, name, defaultValue, log):
+def validateHostnameParameter(param, name, defaultValue):
     try:
         socket.gethostbyname(param)
     except Exception as e:
@@ -22,9 +22,9 @@ def validateHostnameParameter(param, name, defaultValue, log):
     return param
 
 
-def validateIntParameter(param, name, defaultValue, log):
-    try: 
-        temp = int(param) 
+def validateIntParameter(param, name, defaultValue):
+    try:
+        temp = int(param)
     except Exception as e:
         log.error("Invalid parameter, {} passed for {}".format(param, name))
         log.exception(e, exc_info=False)
@@ -32,12 +32,10 @@ def validateIntParameter(param, name, defaultValue, log):
     return temp
 
 
-# --------------------------------------------------------------------------- # 
+# --------------------------------------------------------------------------- #
 # Handle the Client command line arguments
-# --------------------------------------------------------------------------- # 
+# --------------------------------------------------------------------------- #
 def handleClientArgs(argv,argVals):
-
-    log = logging.getLogger('classic_mqtt_client')
 
     try:
       opts, args = getopt.getopt(argv,"h",
@@ -58,19 +56,19 @@ def handleClientArgs(argv,argVals):
                     argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot']))
             sys.exit()
         elif opt in ('--classic_name'):
-            argVals['classicName'] = validateStrParameter(arg,"classic_name", argVals['classicName'], log)
+            argVals['classicName'] = validateStrParameter(arg,"classic_name", argVals['classicName'])
         elif opt in ("--mqtt"):
-            argVals['mqttHost'] = validateHostnameParameter(arg,"mqtt",argVals['mqttHost'], log)
+            argVals['mqttHost'] = validateHostnameParameter(arg,"mqtt",argVals['mqttHost'])
         elif opt in ("--mqtt_port"):
-            argVals['mqttPort'] = validateIntParameter(arg,"mqtt_port", argVals['mqttPort'], log)
+            argVals['mqttPort'] = validateIntParameter(arg,"mqtt_port", argVals['mqttPort'])
         elif opt in ("--mqtt_root"):
-            argVals['mqttRoot'] = validateStrParameter(arg,"mqtt_root", argVals['mqttRoot'], log)
+            argVals['mqttRoot'] = validateStrParameter(arg,"mqtt_root", argVals['mqttRoot'])
         elif opt in ("--mqtt_user"):
-            argVals['mqttUser'] = validateStrParameter(arg,"mqtt_user", argVals['mqttUser'], log)
+            argVals['mqttUser'] = validateStrParameter(arg,"mqtt_user", argVals['mqttUser'])
         elif opt in ("--mqtt_pass"):
-            argVals['mqttPassword'] = validateStrParameter(arg,"mqtt_pass", argVals['mqttPassword'], log)
+            argVals['mqttPassword'] = validateStrParameter(arg,"mqtt_pass", argVals['mqttPassword'])
         elif opt in ("--file"):
-            argVals['file'] = validateStrParameter(arg,"file", argVals['file'], log)
+            argVals['file'] = validateStrParameter(arg,"file", argVals['file'])
 
     argVals['classicName'] = argVals['classicName'].strip()
     argVals['mqttHost'] = argVals['mqttHost'].strip()
@@ -89,4 +87,3 @@ def handleClientArgs(argv,argVals):
     #Make sure the last character in the root is a "/"
     if (not argVals['mqttRoot'].endswith("/")):
         argVals['mqttRoot'] += "/"
-   

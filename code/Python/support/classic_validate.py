@@ -3,9 +3,9 @@ import logging
 import sys, getopt
 import os
 
+log = logging.getLogger('classic_mqtt')
 
-
-def validateStrParameter(param, name, defaultValue, log):
+def validateStrParameter(param, name, defaultValue):
     if isinstance(param, str): 
         return param
     else:
@@ -13,7 +13,7 @@ def validateStrParameter(param, name, defaultValue, log):
         return defaultValue
 
 
-def validateHostnameParameter(param, name, defaultValue, log):
+def validateHostnameParameter(param, name, defaultValue):
     try:
         socket.gethostbyname(param)
     except Exception as e:
@@ -22,7 +22,7 @@ def validateHostnameParameter(param, name, defaultValue, log):
     return param
 
 
-def validateIntParameter(param, name, defaultValue, log):
+def validateIntParameter(param, name, defaultValue):
     try: 
         temp = int(param) 
     except Exception as e:
@@ -37,8 +37,6 @@ def validateIntParameter(param, name, defaultValue, log):
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv,argVals):
     
-    log = logging.getLogger('classic_mqtt')
-
     from classic_mqtt import MAX_WAKE_RATE, MIN_WAKE_RATE, MIN_WAKE_PUBLISHES
     
     try:
@@ -64,27 +62,27 @@ def handleArgs(argv,argVals):
                     argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
             sys.exit()
         elif opt in ('--classic'):
-            argVals['classicHost'] = validateHostnameParameter(arg,"classic",argVals['classicHost'], log)
+            argVals['classicHost'] = validateHostnameParameter(arg,"classic",argVals['classicHost'])
         elif opt in ('--classic_port'):
-            argVals['classicPort'] = validateIntParameter(arg,"classic_port", argVals['classicPort'], log)
+            argVals['classicPort'] = validateIntParameter(arg,"classic_port", argVals['classicPort'])
         elif opt in ('--classic_name'):
-            argVals['classicName'] = validateStrParameter(arg,"classic_name", argVals['classicName'], log)
+            argVals['classicName'] = validateStrParameter(arg,"classic_name", argVals['classicName'])
         elif opt in ("--mqtt"):
-            argVals['mqttHost'] = validateHostnameParameter(arg,"mqtt",argVals['mqttHost'], log)
+            argVals['mqttHost'] = validateHostnameParameter(arg,"mqtt",argVals['mqttHost'])
         elif opt in ("--mqtt_port"):
-            argVals['mqttPort'] = validateIntParameter(arg,"mqtt_port", argVals['mqttPort'], log)
+            argVals['mqttPort'] = validateIntParameter(arg,"mqtt_port", argVals['mqttPort'])
         elif opt in ("--mqtt_root"):
-            argVals['mqttRoot'] = validateStrParameter(arg,"mqtt_root", argVals['mqttRoot'], log)
+            argVals['mqttRoot'] = validateStrParameter(arg,"mqtt_root", argVals['mqttRoot'])
         elif opt in ("--mqtt_user"):
-            argVals['mqttUser'] = validateStrParameter(arg,"mqtt_user", argVals['mqttUser'], log)
+            argVals['mqttUser'] = validateStrParameter(arg,"mqtt_user", argVals['mqttUser'])
         elif opt in ("--mqtt_pass"):
-            argVals['mqttPassword'] = validateStrParameter(arg,"mqtt_pass", argVals['mqttPassword'], log)
+            argVals['mqttPassword'] = validateStrParameter(arg,"mqtt_pass", argVals['mqttPassword'])
         elif opt in ("--wake_publish_rate"):
-            argVals['awakePublishRate'] = int(validateIntParameter(arg,"wake_publish_rate", argVals['awakePublishRate'], log))
+            argVals['awakePublishRate'] = int(validateIntParameter(arg,"wake_publish_rate", argVals['awakePublishRate']))
         elif opt in ("--snooze_publish_rate"):
-            argVals['snoozePublishRate'] = int(validateIntParameter(arg,"snooze_publish_rate", argVals['snoozePublishRate'], log))
+            argVals['snoozePublishRate'] = int(validateIntParameter(arg,"snooze_publish_rate", argVals['snoozePublishRate']))
         elif opt in ("--wake_publishes"):
-            argVals['awakePublishLimit'] = int(validateIntParameter(arg,"wake_publishes", argVals['awakePublishLimit'], log))
+            argVals['awakePublishLimit'] = int(validateIntParameter(arg,"wake_publishes", argVals['awakePublishLimit']))
 
     #Validate the wake/snooze stuff
     if (argVals['snoozePublishRate'] < argVals['awakePublishRate']):
