@@ -69,8 +69,8 @@ def on_connect(client, userdata, flags, rc):
             topic = "{}{}/stat/readings/#".format(argumentValues['mqttRoot'], argumentValues['classicName'])
             client.subscribe(topic)
             log.debug("Subscribed to {}".format(topic))
-            
-            
+
+
             #publish that we are Online
             #will_topic = "{}{}/tele/LWT".format(argumentValues['mqttRoot'], argumentValues['classicName'])
             #mqttClient.publish(will_topic, "Online",  qos=0, retain=False)
@@ -109,7 +109,7 @@ def on_message(client, userdata, message):
         #Convert the JSON message to a Python object
         theMessage = json.loads(message.payload.decode(encoding='UTF-8'))
         #log.debug(theMessage)
-        
+
         #The message should be a "readings" packet, 
         #we only care about the values with -->> next to them.
         #{
@@ -183,6 +183,7 @@ def run(argv):
         log.info("File is old or not there, writing one out with a message...")
         wr = open(argumentValues['file'], 'w')
         wr.write("No data received as of {}\n".format(datetime.now().strftime("%c")))
+        wr.close()
 
     #setup the MQTT Client for publishing and subscribing
     clientId = argumentValues['mqttUser'] + "_mqttclient_" + str(randint(100, 999))
