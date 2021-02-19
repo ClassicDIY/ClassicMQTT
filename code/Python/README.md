@@ -104,7 +104,7 @@ Note: if you need to change anything in the yml file or the ".env" file, you nee
     ```
     docker-compose -f classic_mqtt_compose.yml up
     ```
-4. Only use this if you change the .env file or anything classic_mqtt_compose.yml or Dockerfile once you have already run the command in step 3 above. This tells docker-compose to rebuild and save the images use the command in step 3 to run it:
+4. Only use this if you change anything in classic_mqtt_compose.yml or Dockerfile after you have already run the command in step 3 above. This tells docker-compose to rebuild and save the images (then use the command in step 3 to run it again):
     ```
     docker-compose -f classic_mqtt_compose.yml build
     ```
