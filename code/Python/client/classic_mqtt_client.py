@@ -161,33 +161,6 @@ def is_file_older_than (file, delta):
     log.debug("File is recent, returning False")
     return False
 
-def file_age (file): 
-    if not os.path.exists(file):
-        log.debug("File does not exist, returning True")
-        return "unknown"
-    else:
-        duration = datetime.utcnow() - datetime.utcfromtimestamp(os.path.getmtime(file))
-        
-        if duration <= 0:
-            return "unknown"
-        else:
-            seconds = duration.total_seconds()
-            days = seconds // 3600*24
-            hours = seconds // 3600
-            minutes = (seconds % 3600) // 60
-            seconds = seconds % 60
-            
-            timeStr = ""
-            
-            if (days > 0):
-                timeStr += days + " days "
-            if (hours > 0):
-                timeStr += hours + " hours "
-            if (minutes > 0)
-                timeStr += minutes +" minutes"
-
-            return timeStr.strip()
-
 # --------------------------------------------------------------------------- # 
 # Main
 # --------------------------------------------------------------------------- # 
@@ -232,12 +205,12 @@ def run(argv):
         log.error("Unable to connect to MQTT, exiting...")
         sys.exit(2)
 
-    
+
     mqttClient.loop_start()
 
     log.debug("Starting main loop...")
     while not doStop:
-        try:            
+        try:
             time.sleep(MAIN_LOOP_SLEEP_SECS)
 
             if not mqttConnected:
@@ -249,15 +222,15 @@ def run(argv):
                 if newMsg != None:
                     currentMsg = newMsg
                     newMsg = None
-                    
+
                     #Get the values we care about
                     # -->>"BatTemperature":-10.4,
                     # -->>"BatVoltage":26.7,
                     # -->>"WhizbangBatCurrent":0.8,
                     # -->>"SOC":97,
-      
+
                     batTempC = currentMsg['BatTemperature']
-                    batTempF = (batTempC * 1.8) + 32
+                    batTempF = '{:.1f}'.format((batTempC * 1.8) + 32)
                     batVolts = currentMsg['BatVoltage']
                     batCurrent = currentMsg['WhizbangBatCurrent']
                     SOC = currentMsg['SOC']
@@ -267,17 +240,17 @@ def run(argv):
                     log.debug("SOC {}%".format(SOC))
                     log.debug("Battery is {} V".format(batVolts))
                     log.debug("Battery Current is {}A".format(batCurrent))
-                    log.debug("Battery Temp is {}C".format(batTemp))
+                    log.debug("Battery Temp is {}C {}F".format(batTempC, batTempF))
 
-                    #dt_string = datetime.now().strftime("%-m/%-d/%Y %H:%M:%S")
-                    ageStr = file_age(argumentValues['file'])
+                    dt_string = datetime.now().strftime("%-m/%-d/%-Y %H:%M:%S")
+                    #ageStr = file_age(argumentValues['file'])
 
                     wr = open(argumentValues['file'], 'w')
                     wr.write("Battery SOC: {}%\n".format(SOC))
                     wr.write("Volts: {}V\n".format(batVolts))
                     wr.write("Current: {}A\n".format(batCurrent))
                     wr.write("Battery Temp: {}C/{}F\n".format(batTempC,batTempF))
-                    wr.write("     as of {} ago.\n".format(ageStr))
+                    wr.write("as of {}\n".format(dt_string))
                     wr.close()
 
         except KeyboardInterrupt:
