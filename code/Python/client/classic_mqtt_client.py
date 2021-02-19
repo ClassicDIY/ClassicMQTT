@@ -159,7 +159,34 @@ def is_file_older_than (file, delta):
         return True
 
     log.debug("File is recent, returning False")
-    return False          
+    return False
+
+def file_age (file): 
+    if not os.path.exists(file):
+        log.debug("File does not exist, returning True")
+        return "unknown"
+    else:
+        duration = datetime.utcnow() - datetime.utcfromtimestamp(os.path.getmtime(file))
+        
+        if duration <= 0:
+            return "unknown"
+        else:
+            seconds = duration.total_seconds()
+            days = seconds // 3600*24
+            hours = seconds // 3600
+            minutes = (seconds % 3600) // 60
+            seconds = seconds % 60
+            
+            timeStr = ""
+            
+            if (days > 0):
+                timeStr += days + " days "
+            if (hours > 0):
+                timeStr += hours + " hours "
+            if (minutes > 0)
+                timeStr += minutes +" minutes"
+
+            return timeStr.strip()
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -229,7 +256,8 @@ def run(argv):
                     # -->>"WhizbangBatCurrent":0.8,
                     # -->>"SOC":97,
       
-                    batTemp = currentMsg['BatTemperature']
+                    batTempC = currentMsg['BatTemperature']
+                    batTempF = (batTempC * 1.8) + 32
                     batVolts = currentMsg['BatVoltage']
                     batCurrent = currentMsg['WhizbangBatCurrent']
                     SOC = currentMsg['SOC']
@@ -242,13 +270,14 @@ def run(argv):
                     log.debug("Battery Temp is {}C".format(batTemp))
 
                     #dt_string = datetime.now().strftime("%-m/%-d/%Y %H:%M:%S")
-                    dt_string = datetime.now().strftime("%c")
+                    ageStr = file_age(argumentValues['file'])
+
                     wr = open(argumentValues['file'], 'w')
-                    wr.write("Battery SOC: {}%; ".format(SOC))
-                    wr.write("Volts: {}V; ".format(batVolts))
-                    wr.write("Current: {}A; ".format(batCurrent))
-                    wr.write("Bat. Temp: {}C; ".format(batTemp))
-                    wr.write("as of {}\n".format(dt_string))
+                    wr.write(" Battery SOC: {}%\n".format(SOC))
+                    wr.write("       Volts: {}V\n".format(batVolts))
+                    wr.write("     Current: {}A\n".format(batCurrent))
+                    wr.write("Battery Temp: {}C/{}F\n".format(batTempC,batTempF))
+                    wr.write("     as of {} ago.\n".format(ageStr))
                     wr.close()
 
         except KeyboardInterrupt:
