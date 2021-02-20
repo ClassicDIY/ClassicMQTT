@@ -1,7 +1,7 @@
 import socket
 import logging
 import sys, getopt
-
+import os
 
 log = logging.getLogger('classic_mqtt')
 
@@ -12,14 +12,15 @@ def validateStrParameter(param, name, defaultValue):
         log.error("Invalid parameter, {} passed for {}".format(param, name))
         return defaultValue
 
-def validateURLParameter(param, name, defaultValue):
+
+def validateHostnameParameter(param, name, defaultValue):
     try:
         socket.gethostbyname(param)
-        return param
     except Exception as e:
-        log.error("Invalid parameter, {} passed for {}".format(param, name))
+        log.warning("Name resolution failed for {} passed for {}".format(param, name))
         log.exception(e, exc_info=False)
-        return defaultValue
+    return param
+
 
 def validateIntParameter(param, name, defaultValue):
     try: 
@@ -35,7 +36,7 @@ def validateIntParameter(param, name, defaultValue):
 # Handle the command line arguments
 # --------------------------------------------------------------------------- # 
 def handleArgs(argv,argVals):
-
+    
     from classic_mqtt import MAX_WAKE_RATE, MIN_WAKE_RATE, MIN_WAKE_PUBLISHES
     
     try:
@@ -61,13 +62,13 @@ def handleArgs(argv,argVals):
                     argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
             sys.exit()
         elif opt in ('--classic'):
-            argVals['classicHost'] = validateURLParameter(arg,"classic",argVals['classicHost'])
+            argVals['classicHost'] = validateHostnameParameter(arg,"classic",argVals['classicHost'])
         elif opt in ('--classic_port'):
             argVals['classicPort'] = validateIntParameter(arg,"classic_port", argVals['classicPort'])
         elif opt in ('--classic_name'):
             argVals['classicName'] = validateStrParameter(arg,"classic_name", argVals['classicName'])
         elif opt in ("--mqtt"):
-            argVals['mqttHost'] = validateURLParameter(arg,"mqtt",argVals['mqttHost'])
+            argVals['mqttHost'] = validateHostnameParameter(arg,"mqtt",argVals['mqttHost'])
         elif opt in ("--mqtt_port"):
             argVals['mqttPort'] = validateIntParameter(arg,"mqtt_port", argVals['mqttPort'])
         elif opt in ("--mqtt_root"):
@@ -117,7 +118,7 @@ def handleArgs(argv,argVals):
     log.info("mqttRoot = {}".format(argVals['mqttRoot']))
     log.info("mqttUser = {}".format(argVals['mqttUser']))
     log.info("mqttPassword = **********")
-    #log.info("mqttPassword = {}".format("mqttPassword"))
+    #log.info("mqttPassword = {}".format(argVals['mqttPassword']))
     log.info("awakePublishRate = {}".format(argVals['awakePublishRate']))
     log.info("snoozePublishRate = {}".format(argVals['snoozePublishRate']))
     log.info("awakePublishLimit = {}".format(argVals['awakePublishLimit']))

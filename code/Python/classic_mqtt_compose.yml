@@ -1,51 +1,61 @@
 version: "3"
 services:
   mosquitto:
+    image: eclipse-mosquitto
     hostname: mosquitto
-    image: eclipse-mosquitto:latest
-    restart: always
+    container_name: mosquitto
+    expose:
+      - "1883"
+      - "9001"
+    ports:
+      - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./mosquitto/mosquitto.passwd:/mosquitto/config/mosquitto.passwd
     networks:
       - localnet
-    ports:
-      - "1883:1883"
+
+
   classic_mqtt:
+    container_name: classic_mqtt
     image: classic_mqtt
-    restart: always
+    restart: unless-stopped
     build: .
     environment:
       - LOGLEVEL=DEBUG
+      - CLASSIC=192.168.0.225
+      - CLASSIC_PORT=502
+      - CLASSIC_NAME=classic
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_ROOT=ClassicMQTT
+      - MQTT_USER=ClassicPublisher
+      - MQTT_PASS=ClassicPub123
+      #- AWAKE_PUBLISH_RATE=5
+      #- SNOOZE_PUBLISH_RATE=15 #for testing
+      #- AWAKE_PUBLISH_LIMIT=count
+
     depends_on:
       - mosquitto
     networks:
       - localnet
 
-    # Note you need to create your own .env file in the same directory as this yml file. 
-    # In it add ALL of the ${VARIABLES} used below. In windows, VS Code lets you create ".env" easily, 
-    # but in file explorer you cannot. On Linux, no issue.  
-    # Note, in the mosquitto.passwd file in the repo there are 2 users or you can create your own:
-    # ClassicPublisher password = ClassicPub123
-    # ClassicClient password= ClassicClient123
+    # Note you no longer need to create your own .env file. 
+    # Simply replace your particular values in the "environment" section above.
+    # Note, in the mosquitto.passwd file in the repo there are 2 users:
+    #     ClassicPublisher password = ClassicPub123
+    #     ClassicClient password= ClassicClient123
     #
-    # The file should look like the following.
+    # After you have set the values in the environment section above, use the 
+    # following command to build and run it:
+    #    docker-compose -f classic_mqtt_compose.yml up
     #
-    # CLASSIC=<IP address or URL>
-    # CLASSIC_PORT=<Port usually 502>
-    # CLASSIC_NAME=<Name of you Classic usually "classic" - the name used in Android App>
-    # MQTT_ROOT=<The MQTT Root, usually ClassicMQTT>
-    # MQTT_USER=ClassicPublisher
-    # MQTT_PASS=ClassicPub123
-    #
-    # After you have created the .env file issue the following command to build and run it:
-    # docker-compose -f classic_mqtt_compose.yml up
-    #
-    # Note, if you change the .env file after you run this command the first time, you need to issue 
-    # the following command to re-build it before running it again.
-    # docker-compose -f classic_mqtt_compose.yml build
+    # If you change the values in this file after you use the above 
+    # docker-compose command, use this command to re-build it.
+    #    docker-compose -f classic_mqtt_compose.yml build
     #
 
-    command: "--classic_name ${CLASSIC_NAME} --classic ${CLASSIC} --classic_port ${CLASSIC_PORT} --mqtt mosquitto --mqtt_root ${MQTT_ROOT} --mqtt_user ${MQTT_USER} --mqtt_pass ${MQTT_PASS}"
+    
 networks:
   localnet:

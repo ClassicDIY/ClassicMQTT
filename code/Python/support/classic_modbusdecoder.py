@@ -161,7 +161,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
             if modbusClient is None:
                 modbusClient = ModbusClient(host=classicHost, port=classicPort)
     
-            #Test for succesful connect, if not, log error and mark modbusConnected = False
+            #Test for successful connect, if not, log error and mark modbusConnected = False
             modbusClient.connect()
 
             result = modbusClient.read_holding_registers(4163, 2,  unit=10)

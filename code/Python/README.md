@@ -7,7 +7,7 @@ The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or impli
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
 
 version 1.0.2
-As the name implies, this tool is implemeted in Python and is meant to run on a computer system that can reach your Midnite Classic Solar MPPT Controller and an MQTT broker over a network. Once launched, the program will periodically connect to the Classic using TCP based MODBUS then upload that data to an MQTT broker where it is availabe for subscription from other programs or apps. An example installation would be a Raspberry Pi running on the local network with the Classic and pushing the data to either a local MQTT broker or one the internet. 
+As the name implies, this tool is implemented in Python and is meant to run on a computer system that can reach your Midnite Classic Solar MPPT Controller and an MQTT broker over a network. Once launched, the program will periodically connect to the Classic using TCP based MODBUS then upload that data to an MQTT broker where it is available for subscription from other programs or apps. An example installation would be a Raspberry Pi running on the local network with the Classic and pushing the data to either a local MQTT broker or one the internet. 
 
 ## **Get It**
 
@@ -28,7 +28,7 @@ When it comes time to run the program, there are parameters that can be set or p
 --mqtt_port <1883>              : The port to you to connect to the MQTT Broker, defaults to 1883 if unspecified.  
 --mqtt_root <ClassicMQTT>       : The root for your MQTT topics, defaults to ClassicMQTT if unspecified.  
 --mqtt_user <username>          : The username to access the MQTT Broker.  
---mqtt_pass <password>          : The passowrd to access the MQTT Broker.
+--mqtt_pass <password>          : The password to access the MQTT Broker.
 --wake_publish_rate <5>         : The amount of seconds between updates when in wake mode (default is 5 seconds).
 --snooze_publish_rate <300>     : The amount of seconds between updates when in snooze mode (default is 5 minutes).
 --wake_duration <300>           : The amount of seconds to stay in wake mode after reciving an "info" or "wake" message (default is 5 minutes).
@@ -47,9 +47,9 @@ There are several ways to run this program:
 Make sure that you have access to an MQTT broker; either install one on your server or use one of the internet based ones like [Dioty](http://www.dioty.co/). Once you have that setup, make sure that you have a username and password defined, you will need it to both publish data and to get the data once it is published.  
 
 1. Install Python 3.7 or newer and pip. Consult the documentation for your particular computer.
-2. Install these libraries: **pymodbus**, **paho-mqtt**, **timeloop** using pip:  
+2. Install these libraries: **pymodbus**, **paho-mqtt** using pip:  
     ```
-    pip install pymodbus paho-mqtt timeloop
+    pip install pymodbus paho-mqtt
     ```   
 3. Install or setup access to an MQTT server like [Dioty](http://www.dioty.co/).  Make sure that you have a username and password defined
 4. Run the program from the command line where the classic_mqtt.py is located with t eproper parameters:  
@@ -72,7 +72,7 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
     ```
     docker build -t classic_mqtt .
     ```
-4. Run the docker image and pass the parameters (substituing the correct values for parameter values):  
+4. Run the docker image and pass the parameters (substituting the correct values for parameter values):  
     ```
     docker run classic_mqtt --classic <ClassicHost> --classic_port <502> --classic_name <Classic> --mqtt <127.0.0.1> --mqtt_port <1883> --mqtt_root <ClassicMQTT> --mqtt_user <username> --mqtt_pass <password>
     ```
@@ -84,24 +84,27 @@ Using the "Dockerfile" in this directory will allow an image to be built that ca
 
 ### **3. Using docker-compose**
 
-Use this method if you want to automatically install an MQTT broker (mosquitto) locally and run the program at the same time. This method takes advantage of docker-compose which will build a system that includes both an MQTT service and a service running the classic_mqtt.py script automatically. The definition for thse services are in classic_mqtt_compose.yml. If you are pushing your data to the internet, this may not be the preferred method for you.
+Use this method if you want to automatically install an MQTT broker (mosquitto) locally and run the program at the same time. This method takes advantage of docker-compose which will build a system that includes both an MQTT service and a service running the classic_mqtt.py script automatically. The definition for these services are in classic_mqtt_compose.yml. If you are pushing your data to the internet, this may not be the preferred method for you.
 Note: if you need to change anything in the yml file or the ".env" file, you need to tell docker-compose to rebuild the images with the command listed in step 4 below.  
 
 1. Install docker and docker-compose on your host - look this up on the web and follow the instructions for your computer.
-2. Create the .env file and specify the 5 items listed below in this format. They correspond to the parameters for the classic_mqtt.py program. Notice that since we are bringing up our own MQTT Broker, we can skip specifying the MQTT host. The last 3 parameters will work with the included MQTT broker, so there is no need to change those. To create this file on the Raspberry Pi, I like nano.
+2. In the classic_mqtt_compose.yml file, you can set environment variables needed to run the program. Edit the yml to set them to the needed values. They correspond to the parameters for the classic_mqtt.py program. To edit this file on the Raspberry Pi, I like nano.
     ```
-    CLASSIC=<IP address or URL>  
-    CLASSIC_PORT=<Port usually 502>
-    CLASSIC_NAME=Classic
-    MQTT_ROOT=ClassicMQTT 
-    MQTT_USER=ClassicPublisher 
-    MQTT_PASS=ClassicPub123
+      - LOGLEVEL=DEBUG
+      - CLASSIC=<The URL or IP address of your classic>
+      - CLASSIC_PORT=<The port of your classic, usually 502>
+      - CLASSIC_NAME=<The name of your classic, usually classic>
+      - MQTT=mosquitto
+      - MQTT_PORT=1883
+      - MQTT_ROOT=ClassicMQTT
+      - MQTT_USER=ClassicPublisher
+      - MQTT_PASS=ClassicPub123
     ```
 3. Tell docker-compose to download, build and start up the both mosquitto and the script with the following command.
     ```
     docker-compose -f classic_mqtt_compose.yml up
     ```
-4. Only use this if you change the .env file or anything classic_mqtt_compose.yml or Dockerfile once you have already run the command in step 3 above. This tells docker-compose to rebuild and save the images use the command in step 3 to run it:
+4. Only use this if you change anything in classic_mqtt_compose.yml or Dockerfile after you have already run the command in step 3 above. This tells docker-compose to rebuild and save the images (then use the command in step 3 to run it again):
     ```
     docker-compose -f classic_mqtt_compose.yml build
     ```
