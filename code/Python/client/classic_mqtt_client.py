@@ -258,7 +258,7 @@ def run(argv):
                     #write out the file...
                     log.debug("Writing the values out to the file.")
                     log.debug("Battery SOC: {}%".format(SOC))
-                    log.debug("Charge State: {}\n".format(chargeStateStr))
+                    log.debug("Charge State: {}".format(chargeStateStr))
                     log.debug("Volts: {} V".format(batVolts))
                     log.debug("Current: {}A".format(batCurrent))
                     log.debug("Battery Temp: {}C {}F".format(batTempC, batTempF))
