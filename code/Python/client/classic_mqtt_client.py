@@ -249,17 +249,19 @@ def run(argv):
                     chargeState = currentMsg['ChargeState']
                     SOC = currentMsg['SOC']
 
-                    #write out the file...
-                    log.debug("Writing the values out to the file.")
-                    log.debug("SOC {}%".format(SOC))
-                    log.debug("Battery is {} V".format(batVolts))
-                    log.debug("Battery Current is {}A".format(batCurrent))
-                    log.debug("Battery Temp is {}C {}F".format(batTempC, batTempF))
-
                     if chargeState in chargeStateDict:
                         chargeStateStr = chargeStateDict[chargeState]
                     else:
                         chargeStateStr = "Unknown Code " + chargeState
+
+
+                    #write out the file...
+                    log.debug("Writing the values out to the file.")
+                    log.debug("Battery SOC: {}%".format(SOC))
+                    log.debug("Charge State: {}\n".format(chargeStateStr))
+                    log.debug("Volts: {} V".format(batVolts))
+                    log.debug("Current: {}A".format(batCurrent))
+                    log.debug("Battery Temp: {}C {}F".format(batTempC, batTempF))
 
                     dt_string = datetime.now().strftime("%-m/%-d/%-Y %H:%M:%S")
 
