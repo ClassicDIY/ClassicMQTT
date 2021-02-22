@@ -34,6 +34,16 @@ argumentValues = { \
     'mqttUser':os.getenv('MQTT_USER', "ClassicClient"), \
     'mqttPassword':os.getenv('MQTT_PASS', "ClassicClient123"), \
     'file':os.getenv('FILE',"./classic_client_data.txt")}
+
+chargeStateDict = {0: 'Resting',
+                   3: 'Absorb',
+                   4: 'Bulk MPPT',
+                   5: 'Float',
+                   6: 'Float MPPT',
+                   7: 'Equalize',
+                  10: 'Hyper VOC',
+                  18: 'Eq MPPT'}
+
  
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
@@ -115,7 +125,7 @@ def on_message(client, userdata, message):
         #{
         # -->>"BatTemperature":-10.4,
         # "NetAmpHours":1,
-        # "ChargeState":4,
+        # -->>"ChargeState":4,
         # "InfoFlagsBits":-1308610556,
         # "ReasonForResting":5,
         # "NegativeAmpHours":-11854,
@@ -160,6 +170,8 @@ def is_file_older_than (file, delta):
 
     log.debug("File is recent, returning False")
     return False
+
+
 
 # --------------------------------------------------------------------------- # 
 # Main
@@ -226,6 +238,7 @@ def run(argv):
                     #Get the values we care about
                     # -->>"BatTemperature":-10.4,
                     # -->>"BatVoltage":26.7,
+                    # -->>"ChargeState":4,
                     # -->>"WhizbangBatCurrent":0.8,
                     # -->>"SOC":97,
 
@@ -233,21 +246,29 @@ def run(argv):
                     batTempF = '{:.1f}'.format((batTempC * 1.8) + 32)
                     batVolts = currentMsg['BatVoltage']
                     batCurrent = currentMsg['WhizbangBatCurrent']
+                    chargeState = currentMsg['ChargeState']
                     SOC = currentMsg['SOC']
+
+                    if chargeState in chargeStateDict:
+                        chargeStateStr = chargeStateDict[chargeState]
+                    else:
+                        chargeStateStr = "Unknown Code " + chargeState
+
 
                     #write out the file...
                     log.debug("Writing the values out to the file.")
-                    log.debug("SOC {}%".format(SOC))
-                    log.debug("Battery is {} V".format(batVolts))
-                    log.debug("Battery Current is {}A".format(batCurrent))
-                    log.debug("Battery Temp is {}C {}F".format(batTempC, batTempF))
+                    log.debug("Battery SOC: {}%".format(SOC))
+                    log.debug("Charge State: {}".format(chargeStateStr))
+                    log.debug("Volts: {} V".format(batVolts))
+                    log.debug("Current: {}A".format(batCurrent))
+                    log.debug("Battery Temp: {}C {}F".format(batTempC, batTempF))
 
                     dt_string = datetime.now().strftime("%-m/%-d/%-Y %H:%M:%S")
-                    #ageStr = file_age(argumentValues['file'])
 
                     wr = open(argumentValues['file'], 'w')
                     wr.write("Battery SOC: {}%\n".format(SOC))
                     wr.write("Volts: {}V\n".format(batVolts))
+                    wr.write("Charge State: {}\n".format(chargeStateStr))
                     wr.write("Current: {}A\n".format(batCurrent))
                     wr.write("Battery Temp: {}C/{}F\n".format(batTempC,batTempF))
                     wr.write("as of {}\n".format(dt_string))
