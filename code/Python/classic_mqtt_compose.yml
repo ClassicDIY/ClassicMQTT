@@ -4,6 +4,7 @@ services:
     image: eclipse-mosquitto
     hostname: mosquitto
     container_name: mosquitto
+    restart: unless-stopped
     expose:
       - "1883"
       - "9001"
