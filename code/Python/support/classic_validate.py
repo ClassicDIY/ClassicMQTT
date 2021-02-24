@@ -2,6 +2,8 @@ import socket
 import logging
 import sys, getopt
 import os
+import re
+
 
 log = logging.getLogger('classic_mqtt')
 
@@ -16,10 +18,27 @@ def validateStrParameter(param, name, defaultValue):
 def validateHostnameParameter(param, name, defaultValue):
     try:
         socket.gethostbyname(param)
+        # It works -- use it.  Prevents conflicts with 'invalid' configurations
+        # that still work due to OS quirks
+        return param
     except Exception as e:
-        log.warning("Name resolution failed for {} passed for {}".format(param, name))
+        log.warning("Name resolution failed for {!r} passed for {}".format(param, name))
         log.exception(e, exc_info=False)
-    return param
+    try:
+        assert len(param) < 253
+        # Permit name to end with a single dot.
+        hostname = param[:-1] if param.endswith('.') else param
+        # check each hostname segment.
+        # '_': permissible in domain names, but not hostnames --
+        #      however, many OSes permit them, so we permit them.
+        allowed = re.compile("^(?!-)[A-Z\d_-]{1,63}(?<!-)$", re.IGNORECASE)
+        assert all(allowed.match(s) for s in hostname.split("."))
+        # Host is down, but name is valid.  Use it.
+        return param
+    except AssertionError:
+        log.error("Invalid parameter: {!r} passed for {}, using default instead"
+                  .format(param, name))
+        return defaultValue
 
 
 def validateIntParameter(param, name, defaultValue):
