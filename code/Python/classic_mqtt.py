@@ -54,7 +54,7 @@ argumentValues = { \
     'awakePublishRate':int(os.getenv('AWAKE_PUBLISH_RATE', str(DEFAULT_WAKE_RATE))), \
     'snoozePublishRate':int(os.getenv('SNOOZE_PUBLISH_RATE', str(DEFAULT_SNOOZE_RATE))), \
     'awakePublishLimit':int(os.getenv('AWAKE_PUBLISH_LIMIT', str(DEFAULT_WAKE_PUBLISHES))), \
-    'startAwake':(os.getenv("DEFAULT_START_AWAKE", str(DEFAULT_START_AWAKE)).lower() in ('True', 'true', 'yes', 'y', '1', 't'))}
+    'startAwake':(os.getenv("START_AWAKE", str(DEFAULT_START_AWAKE)).lower() in ('True', 'true', 'yes', 'y', '1', 't'))}
 
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
