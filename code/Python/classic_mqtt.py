@@ -32,13 +32,16 @@ MAX_SNOOZE_RATE             = 4*60*60   #in seconds (4 hours)
 MIN_SNOOZE_RATE             = 1*60      #in seconds (1 minute)
 DEFAULT_SNOOZE_RATE         = 5*60      #in seconds (5 minutes)
 
+DEFAULT_START_AWAKE         = False
+
 MODBUS_MAX_ERROR_COUNT      = 300       #Number of errors on the MODBUS before the tool exits
 MQTT_MAX_ERROR_COUNT        = 300       #Number of errors on the MQTT before the tool exits
 MAIN_LOOP_SLEEP_SECS        = 5         #Seconds to sleep in the main loop
 
 # --------------------------------------------------------------------------- # 
 # Default startup values. Can be over-ridden by command line options.
-# --------------------------------------------------------------------------- # 
+# --------------------------------------------------------------------------- #
+
 argumentValues = { \
     'classicHost':os.getenv('CLASSIC', "ClassicHost"), \
     'classicPort':os.getenv('CLASSIC_PORT', "502"), \
@@ -50,7 +53,8 @@ argumentValues = { \
     'mqttPassword':os.getenv('MQTT_PASS', "ClassicPub123"), \
     'awakePublishRate':int(os.getenv('AWAKE_PUBLISH_RATE', str(DEFAULT_WAKE_RATE))), \
     'snoozePublishRate':int(os.getenv('SNOOZE_PUBLISH_RATE', str(DEFAULT_SNOOZE_RATE))), \
-    'awakePublishLimit':int(os.getenv('AWAKE_PUBLISH_LIMIT', str(DEFAULT_WAKE_PUBLISHES)))}
+    'awakePublishLimit':int(os.getenv('AWAKE_PUBLISH_LIMIT', str(DEFAULT_WAKE_PUBLISHES))), \
+    'startAwake':(os.getenv("DEFAULT_START_AWAKE", str(DEFAULT_START_AWAKE)).lower() in ('True', 'true', 'yes', 'y', '1', 't'))}
 
 # --------------------------------------------------------------------------- # 
 # Counters and status variables
@@ -275,7 +279,7 @@ def periodic(modbus_stop):
 # --------------------------------------------------------------------------- # 
 def run(argv):
 
-    global doStop, mqttClient, awakePublishCycles, snoozePublishCycles, currentPollRate, snoozeCycleLimit
+    global doStop, mqttClient, awakePublishCycles, awakePublishCount, snoozePublishCycles, currentPollRate, snoozeCycleLimit, modeAwake, infoPublished
 
     log.info("classic_mqtt starting up...")
 
@@ -323,6 +327,13 @@ def run(argv):
     periodic_stop = threading.Event()
     # start calling periodic now and every 
     periodic(periodic_stop)
+
+    if argumentValues['startAwake']:
+            log.info("Start awake")
+            #Make info packet get published
+            infoPublished = False
+            modeAwake = True
+            awakePublishCount = 0 #reset the publish count
 
     log.debug("Starting main loop...")
     while not doStop:
