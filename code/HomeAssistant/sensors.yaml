@@ -1,5 +1,5 @@
 # 
-# add sensor: !include sensors.yaml to configuration.yaml
+# add sensors: !include sensors.yaml to configuration.yaml
   
 - platform: mqtt
   name: ClassicMQTT_BatVoltage
