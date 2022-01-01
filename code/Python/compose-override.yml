@@ -5,14 +5,14 @@ services:
     restart: unless-stopped
     environment:
       - LOGLEVEL=DEBUG
-      - CLASSIC=192.168.86.37
+      - CLASSIC=192.168.86.18
       - CLASSIC_PORT=502
       - CLASSIC_NAME=MyWorkshop
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
       - MQTT_ROOT=ClassicMQTT
-      - MQTT_USER=ClassicPublisher
-      - MQTT_PASS=ClassicPub123
+ #     - MQTT_USER=ClassicPublisher
+ #     - MQTT_PASS=ClassicPub123
     networks:
       - iotstack_nw
 
