@@ -49,12 +49,12 @@ char _mqttRootTopic[64];
 char _wakePublishRateStr[NUMBER_CONFIG_LEN];
 char _willTopic[64];
 char _rootTopicPrefix[64];
-iotwebconf::ParameterGroup Classic_group = iotwebconf::ParameterGroup("ClassGroup", "");
+iotwebconf::ParameterGroup Classic_group = iotwebconf::ParameterGroup("ClassGroup", "Classic");
 iotwebconf::TextParameter classicIPParam = iotwebconf::TextParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
 iotwebconf::NumberParameter classicPortParam = iotwebconf::NumberParameter("Classic port", "classicPort", _classicPort, NUMBER_CONFIG_LEN, "text", NULL, "502");
 iotwebconf::TextParameter classicNameParam = iotwebconf::TextParameter("Classic Name", "classicName", _classicName, IOTWEBCONF_WORD_LEN);
 
-iotwebconf::ParameterGroup MQTT_group = iotwebconf::ParameterGroup("MQTT", "");
+iotwebconf::ParameterGroup MQTT_group = iotwebconf::ParameterGroup("MQTT", "MQTT");
 iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
 iotwebconf::NumberParameter mqttPortParam = iotwebconf::NumberParameter("MQTT port", "mqttSPort", _mqttPort, NUMBER_CONFIG_LEN, "text", NULL, "1883");
 iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
