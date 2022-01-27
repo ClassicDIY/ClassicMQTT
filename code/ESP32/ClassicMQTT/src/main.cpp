@@ -2,19 +2,27 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <EEPROM.h>
-#include "IotWebConf.h"
+#include <IotWebConf.h>
+#include <IotWebConfUsing.h>
 #include <ArduinoJson.h>
 #include "AsyncMqttClient.h"
 #include <esp32ModbusTCP.h>
 #include "Log.h"
 #include "ChargeControllerInfo.h"
 
+// Include Update server
+#ifdef ESP8266
+# include <ESP8266HTTPUpdateServer.h>
+#elif defined(ESP32)
+# include <IotWebConfESP32HTTPUpdateServer.h>
+#endif
+
 #define MAX_PUBLISH_RATE 30000
 #define MIN_PUBLISH_RATE 1000
 #define WAKE_PUBLISH_RATE 2000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.3.3" // major.minor.build (major or minor will invalidate the configuration)
+#define CONFIG_VERSION "V1.3.4" // major.minor.build (major or minor will invalidate the configuration)
 #define NUMBER_CONFIG_LEN 6
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
@@ -22,7 +30,11 @@ AsyncMqttClient _mqttClient;
 TimerHandle_t mqttReconnectTimer;
 DNSServer _dnsServer;
 WebServer _webServer(80);
-HTTPUpdateServer _httpUpdater;
+#ifdef ESP8266
+ESP8266HTTPUpdateServer httpUpdater;
+#elif defined(ESP32)
+HTTPUpdateServer httpUpdater;
+#endif
 IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 hw_timer_t *_watchdogTimer = NULL;
 
@@ -37,16 +49,18 @@ char _mqttRootTopic[64];
 char _wakePublishRateStr[NUMBER_CONFIG_LEN];
 char _willTopic[64];
 char _rootTopicPrefix[64];
-IotWebConfParameter classicIPParam = IotWebConfParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter classicPortParam = IotWebConfParameter("Classic port", "classicPort", _classicPort, NUMBER_CONFIG_LEN, "text", NULL, "502");
-IotWebConfParameter classicNameParam = IotWebConfParameter("Classic Name", "classicName", _classicName, IOTWEBCONF_WORD_LEN);
-IotWebConfSeparator MQTT_seperatorParam = IotWebConfSeparator("MQTT");
-IotWebConfParameter mqttServerParam = IotWebConfParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter mqttPortParam = IotWebConfParameter("MQTT port", "mqttSPort", _mqttPort, NUMBER_CONFIG_LEN, "text", NULL, "1883");
-IotWebConfParameter mqttUserNameParam = IotWebConfParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter mqttUserPasswordParam = IotWebConfParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
-IotWebConfParameter mqttRootTopicParam = IotWebConfParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
-IotWebConfParameter wakePublishRateParam = IotWebConfParameter("Publish Rate (S)", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
+iotwebconf::ParameterGroup Classic_group = iotwebconf::ParameterGroup("ClassGroup", "Classic");
+iotwebconf::TextParameter classicIPParam = iotwebconf::TextParameter("Classic IP", "classicIP", _classicIP, IOTWEBCONF_WORD_LEN);
+iotwebconf::NumberParameter classicPortParam = iotwebconf::NumberParameter("Classic port", "classicPort", _classicPort, NUMBER_CONFIG_LEN, "text", NULL, "502");
+iotwebconf::TextParameter classicNameParam = iotwebconf::TextParameter("Classic Name", "classicName", _classicName, IOTWEBCONF_WORD_LEN);
+
+iotwebconf::ParameterGroup MQTT_group = iotwebconf::ParameterGroup("MQTT", "MQTT");
+iotwebconf::TextParameter mqttServerParam = iotwebconf::TextParameter("MQTT server", "mqttServer", _mqttServer, IOTWEBCONF_WORD_LEN);
+iotwebconf::NumberParameter mqttPortParam = iotwebconf::NumberParameter("MQTT port", "mqttSPort", _mqttPort, NUMBER_CONFIG_LEN, "text", NULL, "1883");
+iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
+iotwebconf::PasswordParameter mqttUserPasswordParam = iotwebconf::PasswordParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
+iotwebconf::TextParameter mqttRootTopicParam = iotwebconf::TextParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
+iotwebconf::NumberParameter wakePublishRateParam = iotwebconf::NumberParameter("Publish Rate (S)", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
 
 unsigned long _lastPublishTimeStamp = 0;
 unsigned long _lastModbusPollTimeStamp = 0;
@@ -513,7 +527,7 @@ void configSaved()
 	logi("Configuration was updated.");
 }
 
-boolean formValidator()
+boolean formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper)
 {
 	boolean valid = true;
 	int mqttServerParamLength = _webServer.arg(mqttServerParam.getId()).length();
@@ -614,21 +628,24 @@ void setup()
 	_iotWebConf.setStatusPin(WIFI_STATUS_PIN);
 	_iotWebConf.setConfigPin(WIFI_AP_PIN);
 	// setup EEPROM parameters
-	_iotWebConf.addParameter(&classicIPParam);
-	_iotWebConf.addParameter(&classicPortParam);
-	_iotWebConf.addParameter(&classicNameParam);
-	_iotWebConf.addParameter(&MQTT_seperatorParam);
-	_iotWebConf.addParameter(&mqttServerParam);
-	_iotWebConf.addParameter(&mqttPortParam);
-	_iotWebConf.addParameter(&mqttUserNameParam);
-	_iotWebConf.addParameter(&mqttUserPasswordParam);
-	_iotWebConf.addParameter(&mqttRootTopicParam);
-	_iotWebConf.addParameter(&wakePublishRateParam);
+   	Classic_group.addItem(&classicIPParam);
+	Classic_group.addItem(&classicPortParam);
+    	Classic_group.addItem(&classicNameParam);
+    	MQTT_group.addItem(&mqttServerParam);
+	MQTT_group.addItem(&mqttPortParam);
+    	MQTT_group.addItem(&mqttUserNameParam);
+	MQTT_group.addItem(&mqttUserPasswordParam);
+	MQTT_group.addItem(&mqttRootTopicParam);
+	MQTT_group.addItem(&wakePublishRateParam);
+	_iotWebConf.addParameterGroup(&Classic_group);
+	_iotWebConf.addParameterGroup(&MQTT_group);
 
 	// setup callbacks for IotWebConf
 	_iotWebConf.setConfigSavedCallback(&configSaved);
 	_iotWebConf.setFormValidator(&formValidator);
-	_iotWebConf.setupUpdateServer(&_httpUpdater);
+	_iotWebConf.setupUpdateServer(
+      [](const char* updatePath) { httpUpdater.setup(&_webServer, updatePath); },
+      [](const char* userName, char* password) { httpUpdater.updateCredentials(userName, password); });
 	if (digitalRead(FACTORY_RESET_PIN) == LOW)
 	{
 		EEPROM.begin(IOTWEBCONF_CONFIG_START + IOTWEBCONF_CONFIG_VERSION_LENGTH );
@@ -746,7 +763,7 @@ void loop()
 			{
 				if (doc.containsKey("ssid") && doc.containsKey("password"))
 				{
-					IotWebConfParameter *p = _iotWebConf.getWifiSsidParameter();
+					iotwebconf::Parameter *p = _iotWebConf.getWifiSsidParameter();
 					strcpy(p->valueBuffer, doc["ssid"]);
 					logd("Setting ssid: %s", p->valueBuffer);
 					p = _iotWebConf.getWifiPasswordParameter();
@@ -754,7 +771,7 @@ void loop()
 					logd("Setting password: %s", p->valueBuffer);
 					p = _iotWebConf.getApPasswordParameter();
 					strcpy(p->valueBuffer, TAG); // reset to default AP password
-					_iotWebConf.configSave();
+					_iotWebConf.saveConfig();
 					resetModule();
 				}
 				else
