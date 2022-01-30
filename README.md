@@ -12,7 +12,7 @@
 <img src="./pictures/ClassicMQTT.PNG" width="1024"/>
 
 <p>
-The ClassicMQTT publisher will read data from your classic charge controller using the Modbus protocol and publish the data to a MQTT broker. If you use a cloud based broker like <a href="http://www.dioty.co/">dioty.co</a> then you can monitor your classic charge controller from anywhere on the internet using the Android MQTT subscriber App. This also allows you to integrate other MQTT subscriber applications like HomeAssistant and NodeRed.
+The ClassicMQTT publisher will read data from your classic charge controller using the Modbus protocol and publish the data to a MQTT broker. If you use a cloud based broker like <a href="http://www.dioty.co/">dioty.co</a> then you can monitor your classic charge controller from anywhere on the internet using the Android MQTT subscriber App. This also allows you to integrate other MQTT subscriber applications like HomeAssistant, NodeRed, InfluxDB and Grafana.
 
 The software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND, express or implied.
 Classic Monitor is NOT a product of Midnite solar, nor do they support this application!
