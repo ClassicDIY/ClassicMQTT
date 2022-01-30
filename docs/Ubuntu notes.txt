@@ -1,0 +1,78 @@
+Ubuntu notes
+
+Setup Ubuntu 64-bit on Raspberry Pi 4 (4 gig min):
+
+	Download Ubuntu 64-bit from https://ubuntu.com/download/raspberry-pi
+	Download Balena Etcher from: https://www.balena.io/etcher/
+
+	Launch the Balena Etcher
+	Select ubuntu-20.04.3-preinstalled-server-arm64+raspi.img.xz from your downloads folder
+	Select the SD card
+	Press WRITE then YES
+	When complete, install the sd card into the raspberry pi and power it on.
+	Wait for a couple of minutes for it to boot.
+	Use your router or a tool like Advanced IP Scanner (https://www.advanced-ip-scanner.com/) to find it's IP Address (IP address of ubuntu.lan)
+	Using the Windows command prompt, try tp ping the pi using the IP address.
+	SSH to the pi using the command (replace <RPI-IP Address> with your RPi's IP address): ssh ubuntu@<RPI-IP Address>
+	The default password is ubuntu. Type in ubuntu and press <Enter>.
+	The first time you log into Ubuntu Server 20.04 LTS on your Raspberry Pi 4, you will be asked to change the default password ubuntu.
+	Type in a new password and press <Enter>.
+	Retype the password and press <Enter>.
+	If you want to use an ssh key to login, copy your ssh key to the pi:
+		From windows run: scp /users/<Windows user>/.ssh/id_rsa.pub ubuntu@<RPI-IP Address>:~/.ssh/authorized_keys 
+		
+Set root password:
+	sudo -i passwd
+		
+update:
+	sudo apt update
+	Wait for several minutes for the unattended update to complete then run the following command to upgrade:	
+	sudo apt upgrade
+
+Install IOTStack: (also installs docker, docker compose)
+	curl -fsSL https://raw.githubusercontent.com/SensorsIot/IOTstack/master/install.sh | bash
+	
+Restart the system:
+	sudo reboot now
+
+test docker:
+    docker run hello-world
+	Should see "Hello from Docker!"
+
+Setup IOTStack:
+	cd ~/IOTstack
+Get ClassicMQTT override file:
+	wget https://raw.githubusercontent.com/ClassicDIY/ClassicMQTT/master/code/Python/compose-override.yml
+	sudo nano compose-override.yml (set your classic, mqtt info)
+	./menu.sh
+	Select:
+		grafana
+		heimdall (optional)
+		influxdb
+		mosquitto
+		portainer-ce
+		telegraf
+		
+note: if you are using ubuntu:arm64, edit the grafana entry in the generated docker-compose.yml file to use the grafana/grafana:main-ubuntu image (image: grafana/grafana:main-ubuntu)
+Setup Telegraf:
+	cd ~/IOTstack/volumes/telegraf
+	sudo rm telegraf.conf
+	sudo wget https://raw.githubusercontent.com/ClassicDIY/ClassicMQTT/master/code/Python/telegraf.conf
+	cd ~/IOTstack
+	
+Browse portainer at port 9000, check the logs under "Quick Actions" on all containers
+
+grafana setup:
+	browse at port 3000
+	add new influxdb datasource
+		url: http://influxdb:8086
+		Database: mqtt_solar
+		User: dba
+		Password: supremo
+		HTTP method: Get
+	Save % Test
+	Import sample dashboard from https://github.com/ClassicDIY/ClassicMQTT/blob/master/code/Python/grafana_dashboard.json
+	
+
+
+	
