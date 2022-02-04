@@ -13,8 +13,6 @@ services:
       - MQTT_ROOT=ClassicMQTT
  #     - MQTT_USER=ClassicPublisher
  #     - MQTT_PASS=ClassicPub123
-    networks:
-      - iotstack_nw
 
 # uncomment the following block if you have a second classic, change the CLASSIC ip address and CLASSIC_NAME
 #  classic_mqtt2:
@@ -31,8 +29,6 @@ services:
 #      - MQTT_ROOT=ClassicMQTT
 #      - MQTT_USER=ClassicPublisher
 #      - MQTT_PASS=ClassicPub123
-#    networks:
-#      - iotstack_nw
 
 # Here is an example using an external MQTT broker
 #  classic_mqtt:
@@ -49,5 +45,3 @@ services:
 #      - MQTT_ROOT=ClassicMQTT
 #      - MQTT_USER=HASSUser
 #      - MQTT_PASS=HASSpw
-#    networks:
-#      - iotstack_nw
