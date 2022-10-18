@@ -17,6 +17,8 @@
 # include <IotWebConfESP32HTTPUpdateServer.h>
 #endif
 
+using namespace std;
+
 #define MAX_PUBLISH_RATE 30000
 #define MIN_PUBLISH_RATE 1000
 #define WAKE_PUBLISH_RATE 2000
@@ -362,7 +364,7 @@ void modbus4100 (uint8_t *data)
 void modbus4360(uint8_t *data)// whizbang readings
 { 
 	_chargeControllerInfo.PositiveAmpHours = Getuint32Value(4, data);
-	_chargeControllerInfo.NegativeAmpHours = abs(Getuint32Value(6, data));
+	_chargeControllerInfo.NegativeAmpHours = abs((int)Getuint32Value(6, data));
 	_chargeControllerInfo.NetAmpHours = 0; //Getint32Value(8, data); // todo causing deserialization exception in android
 	_chargeControllerInfo.ShuntTemperature = (Getuint16Value(11, data) & 0x00ff) - 50.0f;
 	_chargeControllerInfo.WhizbangBatCurrent = GetFloatValue(10, data, 10.0);
