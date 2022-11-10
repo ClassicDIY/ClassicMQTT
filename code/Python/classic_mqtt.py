@@ -23,7 +23,7 @@ from time import time_ns
 # GLOBALS
 # --------------------------------------------------------------------------- # 
 MAX_WAKE_RATE               = 15        #in seconds
-MIN_WAKE_RATE               = 3         #in seconds
+MIN_WAKE_RATE               = 2         #in seconds
 DEFAULT_WAKE_RATE           = 5         #in seconds
 MIN_WAKE_PUBLISHES          = 15        #minimum number of publishes before snoozing this * wake_rate = time awake
 DEFAULT_WAKE_PUBLISHES      = 60        #default number of publishes before switching to snooze
@@ -149,9 +149,11 @@ def on_message(client, userdata, message):
             
             if "stayAwake" in theMessage:
                 stayAwake = theMessage['stayAwake']
+                infoPublished = False 
+                modeAwake = True
                 log.debug("StayAwake received, setting stayAwake to {}".format(stayAwake))
             
-            if "wakePublishRate" in theMessage:
+            elif "wakePublishRate" in theMessage:
                 newRate_msecs = theMessage['wakePublishRate']
                 newRate = round(newRate_msecs/1000)
                 if newRate < MIN_WAKE_RATE:
