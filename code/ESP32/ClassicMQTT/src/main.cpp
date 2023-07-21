@@ -19,14 +19,18 @@
 
 using namespace std;
 
-#define MAX_PUBLISH_RATE 30000
-#define MIN_PUBLISH_RATE 1000
-#define WAKE_PUBLISH_RATE 2000
-#define SNOOZE_PUBLISH_RATE 300000
+#define MAX_PUBLISH_RATE 30000              //30 seconds
+#define MIN_PUBLISH_RATE 5000               //5 seconds 
+#define WAKE_PUBLISH_RATE 5000              //5 seconds
+#define SNOOZE_PUBLISH_RATE 300000          //300 seconds = 5 minutes 
+#define MIN_MODBUS_POLL_INTERVAL 1000           //1 second - min time between modbus requests.
+#define MAX_MODBUS_READ_ATTEMPTS 3          //maximum number of tries per publish cycle.
 #define WAKE_COUNT 60
+
 #define CONFIG_VERSION "V1.3.4" // major.minor.build (major or minor will invalidate the configuration)
 #define NUMBER_CONFIG_LEN 6
-#define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
+#define WATCHDOG_TIMER 600000               //time in ms to trigger the watchdog
+#define MODBUS_READ_TIMEOUT 300000          //5 minutes in ms. Clear the modbus read
 
 AsyncMqttClient _mqttClient;
 TimerHandle_t mqttReconnectTimer;
@@ -39,6 +43,31 @@ HTTPUpdateServer httpUpdater;
 #endif
 IotWebConf _iotWebConf(TAG, &_dnsServer, &_webServer, TAG, CONFIG_VERSION);
 hw_timer_t *_watchdogTimer = NULL;
+hw_timer_t *_modbusReadTimer = NULL;
+int modbusRequestFailureCount = 0;
+boolean doPublish = false;
+
+
+int _currentRegister = 0;
+uint16_t _currentRequestId = 0;
+
+void modbus4100(uint8_t *data);
+void modbus4360(uint8_t *data);
+void modbus4163(uint8_t *data);
+void modbus4243(uint8_t *data);
+void modbus16386(uint8_t *data);
+
+#define numBanks 5
+static ModbusRegisterBank _registers[numBanks] = {
+	{false, 4100, 44, modbus4100},    //0
+	{false, 4360, 22, modbus4360},    //1
+	{false, 4163, 2, modbus4163},     //2
+	{false, 4243, 32, modbus4243},    //3
+	{false, 16386, 4, modbus16386}};  //4
+
+
+
+
 
 char _classicIP[IOTWEBCONF_WORD_LEN];
 char _classicPort[NUMBER_CONFIG_LEN];
@@ -62,14 +91,15 @@ iotwebconf::NumberParameter mqttPortParam = iotwebconf::NumberParameter("MQTT po
 iotwebconf::TextParameter mqttUserNameParam = iotwebconf::TextParameter("MQTT user", "mqttUser", _mqttUserName, IOTWEBCONF_WORD_LEN);
 iotwebconf::PasswordParameter mqttUserPasswordParam = iotwebconf::PasswordParameter("MQTT password", "mqttPass", _mqttUserPassword, IOTWEBCONF_WORD_LEN, "password");
 iotwebconf::TextParameter mqttRootTopicParam = iotwebconf::TextParameter("MQTT Root Topic", "mqttRootTopic", _mqttRootTopic, IOTWEBCONF_WORD_LEN);
-iotwebconf::NumberParameter wakePublishRateParam = iotwebconf::NumberParameter("Publish Rate (S)", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "text", NULL, "2");
+iotwebconf::NumberParameter wakePublishRateParam = iotwebconf::NumberParameter("Publish Rate (S)", "wakePublishRate", _wakePublishRateStr, NUMBER_CONFIG_LEN, "5", "between 5 and 30", "step='1'");
 
-unsigned long _lastPublishTimeStamp = 0;
-unsigned long _lastModbusPollTimeStamp = 0;
+
+unsigned long _nextPublishTime = 0;
+unsigned long _nextModbusPollTimeStamp = 0;
 unsigned long _currentPublishRate = WAKE_PUBLISH_RATE; // rate currently being used
 unsigned long _wakePublishRate = WAKE_PUBLISH_RATE; // wake publish rate set by config or mqtt command
 boolean _stayAwake = false;
-int _publishCount = 0;
+int _publishAttemptCount = 0;
 
 bool _clientsConfigured = false;
 bool _mqttReadingsAvailable = false;
@@ -77,27 +107,32 @@ bool _boilerPlateInfoPublished = false;
 uint8_t _boilerPlateReadBitField = 0;
 ChargeControllerInfo _chargeControllerInfo;
 esp32ModbusTCP *_pClassic;
-int _currentRegister = 0;
 
-#define numBanks (sizeof(_registers) / sizeof(ModbusRegisterBank))
-void modbus4100(uint8_t *data);
-void modbus4360(uint8_t *data);
-void modbus4163(uint8_t *data);
-void modbus4243(uint8_t *data);
-void modbus16386(uint8_t *data);
 
-ModbusRegisterBank _registers[] = {
-	{false, 4100, 44, modbus4100},
-	{false, 4360, 22, modbus4360},
-	{false, 4163, 2, modbus4163},
-	{false, 4243, 32, modbus4243},
-	{false, 16386, 4, modbus16386}};
+void IRAM_ATTR clearModbusRead()
+{
+	_currentRequestId = 0; //clear a hanging read that appears to never come back.
+	loge("Long MODBUS read, requestId cleared");
+	//ets_printf("Long MODBUS read, requestId cleared\n");
+}
 
 void IRAM_ATTR resetModule()
 {
-	// ets_printf("watchdog timer expired - rebooting\n");
+	//ets_printf("watchdog timer expired - rebooting\n");
 	esp_restart();
 }
+
+void init_modbusReadTimer()
+{
+	if (_modbusReadTimer == NULL)
+	{
+		_modbusReadTimer = timerBegin(0, 80, true);					   //timer 0, div 80
+		timerAttachInterrupt(_modbusReadTimer, &clearModbusRead, true);	  //attach callback
+		timerAlarmWrite(_modbusReadTimer, MODBUS_READ_TIMEOUT * 1000, false); //set time in us
+		timerAlarmEnable(_modbusReadTimer);							   //enable interrupt
+	}
+}
+
 
 void init_watchdog()
 {
@@ -109,6 +144,25 @@ void init_watchdog()
 		timerAlarmEnable(_watchdogTimer);							   //enable interrupt
 	}
 }
+
+void resetStart_modbusReadTimer()
+{
+	if (_modbusReadTimer != NULL)
+	{
+		timerWrite(_modbusReadTimer, 0); // reset the timer to start counting up again
+		if (!timerStarted(_modbusReadTimer)){
+			timerStart(_modbusReadTimer);
+		}
+	}
+}
+void stop_modbusReadTimer() 
+{
+	if (_modbusReadTimer != NULL)
+	{
+		timerStop(_modbusReadTimer); // reset the timer to start counting up again
+	}
+}
+
 
 void feed_watchdog()
 {
@@ -229,47 +283,65 @@ boolean GetFlagValue(int index, uint16_t mask, uint8_t *data)
 	return rVal;
 }
 
-void readModbus()
+int readModbus()
 {
+	boolean retVal = 0;
 	boolean done = false;
+
+	if (_currentRequestId != 0) return 3; //waiting on another read so do nothing.
+
 	while (!done)
 	{
 		if (_currentRegister < numBanks)
 		{
 			if (_registers[_currentRegister].received == false)
 			{
-				if (_pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters) != 0)
+				logd("About to request, cursor= %d; Requesting %d for %d registers", _currentRegister, _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+				uint16_t reqId = _pClassic->readHoldingRegisters(_registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+				if ( reqId != 0)
 				{
-					// logd("Requesting %d for %d registers", _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+					logd("Request Id %d for register %d Requesting %d for %d registers. ", reqId, _currentRegister, _registers[_currentRegister].address, _registers[_currentRegister].numberOfRegisters);
+					//Only return true if a request was actually made.
+					retVal = 1; //Made request
+					_currentRequestId = reqId;
+					resetStart_modbusReadTimer();
 				}
 				else
 				{
 					loge("Request %d failed\n", _registers[_currentRegister].address);
+					retVal = 0; //error
 				}
 				done = true;
+			} else {
+				retVal = 2; //Have data, skip
 			}
+			done = true;
 			_currentRegister++;
 		}
 		else
 		{
 			_currentRegister = 0;
-			_registers[0].received = false; // repeat readings
-			_registers[1].received = false;
 		}
 	}
+	return retVal;
 }
 
 void Wake()
 {
 	_currentPublishRate = _wakePublishRate;
-	_lastPublishTimeStamp = 0;
-	_lastModbusPollTimeStamp = 0;
+	_nextPublishTime = 0;
 	_boilerPlateInfoPublished = false;
-	_publishCount = 0;
+	_publishAttemptCount = 0;
 }
 
 void modbusErrorCallback(uint16_t packetId, MBError error)
 {
+	logd("Error - packetId[%d], requestId[%d]", packetId, _currentRequestId);
+	modbusRequestFailureCount++;
+	//Only hanging 1 at a time, so clear it out.
+	_currentRequestId = 0;
+	stop_modbusReadTimer();
+
 	String text;
 	switch (error)
 	{
@@ -414,7 +486,10 @@ void modbus16386(uint8_t *data)
 void modbusCallback(uint16_t packetId, uint8_t slaveAddress, MBFunctionCode functionCode, uint8_t *data, uint16_t byteCount)
 {
 	int regCount = byteCount / 2;
-	logd("packetId[0x%x], slaveAddress[0x%x], functionCode[0x%x], numberOfRegisters[%d]", packetId, slaveAddress, functionCode, regCount);
+	logd("packetId[%d], currentRequesId[%d], slaveAddress[%d], functionCode[%d], numberOfRegisters[%d]", packetId, _currentRequestId, slaveAddress, functionCode, regCount);
+	_currentRequestId = 0; 
+	stop_modbusReadTimer();
+
 	for (int i = 0; i < numBanks; i++)
 	{
 		if (_registers[i].numberOfRegisters == regCount)
@@ -532,16 +607,16 @@ void configSaved()
 boolean formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper)
 {
 	boolean valid = true;
-	int mqttServerParamLength = _webServer.arg(mqttServerParam.getId()).length();
-	if (mqttServerParamLength == 0)
-	{
-		mqttServerParam.errorMessage = "MQTT server is required";
-		valid = false;
-	}
-	int rate = _webServer.arg(wakePublishRateParam.getId()).toInt() * 1000;
+	// long mqttServerParamLength = _webServer.arg(mqttServerParam.getId()).length();
+	// if (mqttServerParamLength == 0)
+	// {
+	// 	mqttServerParam.errorMessage = "MQTT server is required";
+	// 	valid = false;
+	// }
+	long rate = _webServer.arg(wakePublishRateParam.getId()).toInt() * 1000;
 	if (rate < MIN_PUBLISH_RATE || rate > MAX_PUBLISH_RATE)
 	{
-		wakePublishRateParam.errorMessage = "Invalid publish rate.";
+		wakePublishRateParam.errorMessage = "Invalid publish rate, between 1 and 30 please!";
 		valid = false;
 	}
 	return valid;
@@ -555,7 +630,7 @@ void WiFiEvent(WiFiEvent_t event)
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
-		doc["IP"] = WiFi.localIP().toString().c_str();
+		doc["IP"] = WiFi.localIP().toString();
 		doc["ApPassword"] = TAG;
 		serializeJson(doc, s);
 		s += '\n';
@@ -579,42 +654,46 @@ void onMqttPublish(uint16_t packetId)
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
 	logd("MQTT Message arrived [%s]  qos: %d len: %d index: %d total: %d", topic, properties.qos, len, index, total);
-	printHexString(payload, len);
+	printCharString(payload, len);
 
-	StaticJsonDocument<64> doc;
-	DeserializationError err = deserializeJson(doc, payload);
+	StaticJsonDocument<64> mqttMsgDoc;
+
+	string cleanPayload = payload;
+    string result = cleanPayload.substr(1,cleanPayload.length()-2);
+	DeserializationError err = deserializeJson(mqttMsgDoc, result.c_str());
 	if (err) // not json!
 	{
-		logd("MQTT payload {%s} is not valid JSON!", payload);
+		logd("MQTT payload -%s- is not valid JSON!", result);
 	}
 	else 
 	{
 		boolean messageProcessed = false;
-		if (doc.containsKey("stayAwake") && doc["stayAwake"].is<boolean>())
+		if (mqttMsgDoc.containsKey("stayAwake") && mqttMsgDoc["stayAwake"].is<boolean>())
 		{
-			_stayAwake = doc["stayAwake"];
+			_stayAwake = mqttMsgDoc["stayAwake"];
 			messageProcessed = true;
 			logd("Stay awake: %s", _stayAwake ? "yes" :"no");
 		}
-		if (doc.containsKey("wakePublishRate") && doc["wakePublishRate"].is<int>())
+		if (mqttMsgDoc.containsKey("wakePublishRate") && mqttMsgDoc["wakePublishRate"].is<int>())
 		{
-			int publishRate = doc["wakePublishRate"];
+			int publishRate = mqttMsgDoc["wakePublishRate"];
 			messageProcessed = true;
 			if (publishRate >= MIN_PUBLISH_RATE && publishRate <= MAX_PUBLISH_RATE)
 			{
-				_wakePublishRate = doc["wakePublishRate"];
+				_wakePublishRate = mqttMsgDoc["wakePublishRate"];
 				logd("Wake publish rate: %d", _wakePublishRate);
 			}
 			else
 			{
-				logd("wakePublishRate is out of rage!");
+				logd("wakePublishRate is out of range!");
 			}
 		}
 		if (!messageProcessed)
 		{
-			logd("MQTT Json payload {%s} not recognized!", payload);
+			logd("MQTT Json payload %s not recognized!", result);
 		}
 	}
+	
 	Wake(); // wake on any MQTT command received
 }
 
@@ -632,10 +711,10 @@ void setup()
 	// setup EEPROM parameters
    	Classic_group.addItem(&classicIPParam);
 	Classic_group.addItem(&classicPortParam);
-    	Classic_group.addItem(&classicNameParam);
-    	MQTT_group.addItem(&mqttServerParam);
+   	Classic_group.addItem(&classicNameParam);
+   	MQTT_group.addItem(&mqttServerParam);
 	MQTT_group.addItem(&mqttPortParam);
-    	MQTT_group.addItem(&mqttUserNameParam);
+   	MQTT_group.addItem(&mqttUserNameParam);
 	MQTT_group.addItem(&mqttUserPasswordParam);
 	MQTT_group.addItem(&mqttRootTopicParam);
 	MQTT_group.addItem(&wakePublishRateParam);
@@ -666,14 +745,15 @@ void setup()
 	if (!validConfig)
 	{
 		logw("!invalid configuration!");
+		//Load the defaults
 		_classicIP[0] = '\0';
-		_classicPort[0] = '\0';
+		strcpy(_classicPort,"502");
 		_mqttServer[0] = '\0';
-		_mqttPort[0] = '\0';
+		strcpy(_mqttPort,"1883");
 		_mqttUserName[0] = '\0';
 		_mqttUserPassword[0] = '\0';
 		_mqttRootTopic[0] = '\0';
-		_wakePublishRateStr[0] = '\0';
+		strcpy(_wakePublishRateStr, "3");
 		_iotWebConf.resetWifiAuthInfo();
 	}
 	else
@@ -716,41 +796,78 @@ void setup()
 	_webServer.on("/", handleRoot);
 	_webServer.on("/config", [] { _iotWebConf.handleConfig(); });
 	_webServer.onNotFound([]() { _iotWebConf.handleNotFound(); });
-	_lastPublishTimeStamp = millis() + WAKE_PUBLISH_RATE;
+	_nextPublishTime = millis() + WAKE_PUBLISH_RATE;
 	init_watchdog();
+	init_modbusReadTimer(); //set a time that will reset any hanging read
 	logd("Done setup");
 }
 
 void loop()
 {
+	feed_watchdog();
+
 	_iotWebConf.doLoop();
 	if (_clientsConfigured && WiFi.isConnected())
 	{
-		if (_lastModbusPollTimeStamp < millis())
+        //Is it publish time now?
+		if (millis() > _nextPublishTime)
 		{
-			_lastModbusPollTimeStamp = millis() + WAKE_PUBLISH_RATE;
-			readModbus();
-		}
-		if (_mqttClient.connected())
-		{
-			if (_lastPublishTimeStamp < millis())
-			{
-				_lastPublishTimeStamp = millis() + _currentPublishRate;
-				_publishCount++;
-				publishReadings();
-				// Serial.printf("%d ", _publishCount);
+			logd("Publish time");
+			//if not yet snoozing, then up the publish count.
+			if (_currentPublishRate != SNOOZE_PUBLISH_RATE) {
+				_publishAttemptCount++;
 			}
-			if (!_stayAwake && _publishCount >= WAKE_COUNT)
+			doPublish = true;
+			_nextPublishTime = _nextPublishTime + _currentPublishRate;
+			_registers[0].received = false;
+			_registers[1].received = false;
+			//_currentRequestId = 0;
+			modbusRequestFailureCount = 0;
+		}
+
+		if (doPublish){
+			//Is it time to read from the Modbus again?
+			int status = readModbus(); //0=failed, 1=request success, 2=request not needed; 3 = waiting
+			
+			if (status != 3 && status != 0) {
+				logd("MODBUS Read Request status = %d", status);
+			}
+
+			if ( status == 0) {
+				modbusRequestFailureCount++; //if failed up count
+				loge("modbusRequestFailureCount %d", modbusRequestFailureCount);
+			}
+
+			//If failed to get readings from the modbus too many times, skip until next publish time
+			if (modbusRequestFailureCount >= MAX_MODBUS_READ_ATTEMPTS){
+				//skip this whole request
+				doPublish = false;
+				_nextPublishTime = millis() + (2 * _currentPublishRate); //halve the rate when getting errors.
+				loge("MODBUS failures causing publish skip");
+			
+			} else if (_registers[0].received && _registers[1].received ) {
+				//are we connected?
+				if (_mqttClient.connected())
+				{
+					publishReadings();
+				} else {
+					loge("Mqtt is not connected");
+				}
+
+                //Done trying to publishing
+				doPublish = false;
+			}
+
+			if (!_stayAwake && _publishAttemptCount >= WAKE_COUNT && _currentPublishRate != SNOOZE_PUBLISH_RATE)
 			{
-				_publishCount = 0;
+				_publishAttemptCount = 0;
 				_currentPublishRate = SNOOZE_PUBLISH_RATE;
-				logd("Snoozing!");
+				logd("Snoozing! New rate %d", _currentPublishRate);
 			}
 		}
 	}
 	else
 	{
-		feed_watchdog(); // don't reset when not configured
 		if (Serial.peek() == '{')
 		{
 			String s = Serial.readStringUntil('}');
