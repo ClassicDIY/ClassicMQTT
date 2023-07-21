@@ -328,8 +328,11 @@ int readModbus()
 
 void Wake()
 {
-	_currentPublishRate = _wakePublishRate;
-	_nextPublishTime = 0;
+	if (_currentPublishRate != _wakePublishRate)
+	{
+		_currentPublishRate = _wakePublishRate;
+		_nextPublishTime = 0;
+	}
 	_boilerPlateInfoPublished = false;
 	_publishAttemptCount = 0;
 }
