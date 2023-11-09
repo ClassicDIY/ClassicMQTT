@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+try:
+    from pymodbus.client import ModbusTcpClient as ModbusClient  # pymodbus 3
+except ImportError:
+    from pymodbus.client.sync import ModbusTcpClient as ModbusClient  # pymodbus 2
 from paho.mqtt import client as mqttclient
 from collections import OrderedDict
 import json
