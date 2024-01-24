@@ -11,6 +11,14 @@ void inline printHexString(char* ptr, int len)
 #endif
 }
 
+void inline printCharString(char* ptr, int len)
+{
+#if APP_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_DEBUG
+	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+	esp_log_buffer_char_internal(TAG, ptr, len, ESP_LOG_DEBUG);
+#endif
+}
+
 #if APP_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_VERBOSE
 #define logv(format, ...) log_printf(ARDUHAL_LOG_FORMAT(V, format), ##__VA_ARGS__)
 #else
