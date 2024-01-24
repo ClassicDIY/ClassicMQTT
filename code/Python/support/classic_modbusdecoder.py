@@ -9,8 +9,12 @@
 
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
-from pymodbus.client.sync import ModbusTcpClient as ModbusClient
-from pymodbus.compat import iteritems
+try:
+    from pymodbus.client import ModbusTcpClient as ModbusClient
+    MODBUS_VERSION = 3
+except ImportError:
+    from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+    MODBUS_VERSION = 2
 from collections import OrderedDict
 import logging
 import sys
@@ -22,7 +26,10 @@ log = logging.getLogger('classic_mqtt')
 # --------------------------------------------------------------------------- # 
 def getRegisters(theClient, addr, count):
     try:
-        result = theClient.read_holding_registers(addr, count,  unit=10)
+        if MODBUS_VERSION == 2:
+            result = theClient.read_holding_registers(addr, count, unit=10)
+        else:
+            result = theClient.read_holding_registers(addr, count, slave=10)
         if result.function_code >= 0x80:
             log.error("error getting {} for {} bytes".format(addr, count))
             return {}
@@ -160,11 +167,14 @@ def getModbusData(modeAwake, classicHost, classicPort):
             log.debug("Opening the modbus Connection")
             if modbusClient is None:
                 modbusClient = ModbusClient(host=classicHost, port=classicPort)
-    
+
             #Test for successful connect, if not, log error and mark modbusConnected = False
             modbusClient.connect()
 
-            result = modbusClient.read_holding_registers(4163, 2,  unit=10)
+            if MODBUS_VERSION == 2:
+                result = modbusClient.read_holding_registers(4163, 2, unit=10)
+            else:
+                result = modbusClient.read_holding_registers(4163, 2, slave=10)
             if result.isError():
                 # close the client
                 log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
