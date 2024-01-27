@@ -10,10 +10,10 @@
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 try:
-    from pymodbus.client import ModbusTcpClient as ModbusClient
+    from pymodbus.client import ModbusTcpClient as ModbusClient  # pymodbus 3
     MODBUS_VERSION = 3
 except ImportError:
-    from pymodbus.client.sync import ModbusTcpClient as ModbusClient
+    from pymodbus.client.sync import ModbusTcpClient as ModbusClient  # pymodbus 2
     MODBUS_VERSION = 2
 from collections import OrderedDict
 import logging
@@ -44,10 +44,16 @@ def getRegisters(theClient, addr, count):
 # Return a decoder for the passed in registers
 # --------------------------------------------------------------------------- # 
 def getDataDecoder(registers):
-    return BinaryPayloadDecoder.fromRegisters(
-        registers,
-        byteorder=Endian.Big,
-        wordorder=Endian.Little)
+    if MODBUS_VERSION == 2:
+        return BinaryPayloadDecoder.fromRegisters(
+            registers,
+            byteorder=Endian.Big,
+            wordorder=Endian.Little)
+    else:
+        return BinaryPayloadDecoder.fromRegisters(
+            registers,
+            byteorder=Endian.BIG,
+            wordorder=Endian.LITTLE)
 
 # --------------------------------------------------------------------------- # 
 # Based on the address, return the decoded OrderedDict
@@ -69,7 +75,7 @@ def doDecode(addr, decoder):
             ('mac_5', decoder.decode_8bit_uint()),                     #4108 MSB
             ('mac_4', decoder.decode_8bit_uint()),                     #4108 LSB
             ('ignore2', decoder.skip_bytes(4)),                        #4109, 4110
-            ('unitID', decoder.decode_32bit_int()),                    #4111
+            ('unitID', decoder.decode_32bit_uint()),                   #4111
             ('StatusRoll', decoder.decode_16bit_uint()),               #4113
             ('RsetTmms', decoder.decode_16bit_uint()),                 #4114
             ('BatVoltage', decoder.decode_16bit_int()/10.0),           #4115
@@ -86,7 +92,7 @@ def doDecode(addr, decoder):
             ('AmpHours', decoder.decode_16bit_uint()),                 #4125
             ('TotalEnergy', decoder.decode_32bit_uint()/10.0),         #4126, 4127
             ('LifetimeAmpHours', decoder.decode_32bit_uint()),         #4128, 4129
-            ('InfoFlagsBits', decoder.decode_32bit_int()),             #4130, 31
+            ('InfoFlagsBits', decoder.decode_32bit_uint()),            #4130, 31
             ('BatTemperature', decoder.decode_16bit_int()/10.0),       #4132
             ('FETTemperature', decoder.decode_16bit_int()/10.0),       #4133
             ('PCBTemperature', decoder.decode_16bit_int()/10.0),       #4134
@@ -124,14 +130,20 @@ def doDecode(addr, decoder):
         ])
     elif (addr == 4209):
         decoded = OrderedDict([
-            ('Name0', decoder.decode_8bit_uint()),                      #4210
-            ('Name1', decoder.decode_8bit_uint()),                      #4211
-            ('Name2', decoder.decode_8bit_uint()),                      #4212
-            ('Name3', decoder.decode_8bit_uint()),                      #4213
-            ('Name4', decoder.decode_8bit_uint()),                      #4214
-            ('Name5', decoder.decode_8bit_uint()),                      #4215
-            ('Name6', decoder.decode_8bit_uint()),                      #4216
-            ('Name7', decoder.decode_8bit_uint()),                      #4217
+            ('Name0', decoder.decode_8bit_uint()),                      #4210-MSB
+            ('Name1', decoder.decode_8bit_uint()),                      #4210-LSB
+            ('Name2', decoder.decode_8bit_uint()),                      #4211-MSB
+            ('Name3', decoder.decode_8bit_uint()),                      #4211-LSB
+            ('Name4', decoder.decode_8bit_uint()),                      #4212-MSB
+            ('Name5', decoder.decode_8bit_uint()),                      #4212-LSB
+            ('Name6', decoder.decode_8bit_uint()),                      #4213-MSB
+            ('Name7', decoder.decode_8bit_uint()),                      #4213-LSB
+        ])
+    elif (addr == 4213):
+        decoded = OrderedDict([
+            ('CTIME0', decoder.decode_32bit_uint()),                    #4214+#4215
+            ('CTIME1', decoder.decode_32bit_uint()),                    #4216+#4217
+            ('CTIME2', decoder.decode_32bit_uint()),                    #4218+#4219
         ])
     elif (addr == 4243):
         decoded = OrderedDict([
@@ -175,6 +187,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
                 result = modbusClient.read_holding_registers(4163, 2, unit=10)
             else:
                 result = modbusClient.read_holding_registers(4163, 2, slave=10)
+
             if result.isError():
                 # close the client
                 log.error("MODBUS isError H:{} P:{}".format(classicHost, classicPort))
@@ -190,6 +203,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
         theData[4360] = getRegisters(theClient=modbusClient,addr=4360,count=22)
         theData[4163] = getRegisters(theClient=modbusClient,addr=4163,count=2)
         theData[4209] = getRegisters(theClient=modbusClient,addr=4209,count=4)
+        theData[4213] = getRegisters(theClient=modbusClient,addr=4213,count=6)
         theData[4243] = getRegisters(theClient=modbusClient,addr=4243,count=32)
         theData[16386]= getRegisters(theClient=modbusClient,addr=16386,count=4)
         
@@ -218,5 +232,81 @@ def getModbusData(modeAwake, classicHost, classicPort):
     decoded = {}
     for index in theData:
         decoded = {**dict(decoded), **dict(doDecode(index, getDataDecoder(theData[index])))}
+
+    # Device type 251 is different
+    if decoded['Type'] == 251:
+        decoded['Type'] = '250 KS'
+
+    # IP number
+    decoded['IP'] = classicHost
+
+    # Charge State icon
+    decoded['ChargeStateIcon'] = 'mdi:music-rest-whole'
+    if decoded['ChargeStage'] == 3 or decoded['ChargeStage'] == 4:
+        decoded['ChargeStateIcon'] = 'mdi:battery-charging'
+    elif decoded['ChargeStage'] == 5 or decoded['ChargeStage'] == 6:
+        decoded['ChargeStateIcon'] = 'mdi:format-float-center'
+    elif decoded['ChargeStage'] >= 7:
+        decoded['ChargeStateIcon'] = 'mdi:approximately-equal'
+    #
+    chrg_stt_txt_arr = {
+        0: 'Resting',
+        3: 'Absorb',
+        4: 'Bulk MPPT',
+        5: 'Float',
+        6: 'Float MPPT',
+        7: 'Equalize',
+        10: 'HyperVOC',
+        18: 'Equalize MPPT',
+        }
+    decoded['ChargeStateText'] = chrg_stt_txt_arr[decoded['ChargeStage']]
+
+    # SOC icon
+    SOCicon = "mdi:battery-"
+    if decoded["ChargeStage"] == 3 or decoded["ChargeStage"] == 4:
+        SOCicon = SOCicon + "charging-"
+    SOCicon = SOCicon + str( int( int(decoded["SOC"]) / 10 ) ) + "0"
+    if SOCicon == "mdi:battery-100":
+        SOCicon = "mdi:battery"
+    decoded["SOCicon"] = SOCicon
+    # Rest reason
+    rest_reason_arr = {
+        1: "Anti-Click. Not enough power available (Wake Up)",
+        2: " Insane Ibatt Measurement (Wake Up)",
+        3: " Negative Current (load on PV input ?) (Wake Up)",
+        4: " PV Input Voltage lower than Battery V (Vreg state)",
+        5: " Too low of power out and Vbatt below set point for > 90 seconds",
+        6: " FET temperature too high (Cover is on maybe?)",
+        7: " Ground Fault Detected",
+        8: " Arc Fault Detected",
+        9: " Too much negative current while operating (backfeed from battery out of PV input)",
+        10: "Battery is less than 8.0 Volts",
+        11: "PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
+        12: "Voc has gone down from last Voc or low light. Re-check (Solar mode)",
+        13: "Voc has gone up from last Voc enough to be suspicious. Re-check (Solar mode)",
+        14: "PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
+        15: "Voc has gone down from last Voc or low light. Re-check (Solar mode)",
+        16: "Mppt MODE is OFF (Usually because user turned it off)",
+        17: "PV input is higher than operation range (too high for 150V Classic)",
+        18: "PV input is higher than operation range (too high for 200V Classic)",
+        19: "PV input is higher than operation range (too high for 250V or 250KS)",
+        22: "Average Battery Voltage is too high above set point",
+        25: "Battery Voltage too high of Overshoot (small battery or bad cable ?)",
+        26: "Mode changed while running OR Vabsorb raised more than 10.0 Volts at once OR Nominal Vbatt changed by modbus command AND MpptMode was ON when changed",
+        27: "bridge center == 1023 (R132 might have been stuffed) This turns MPPT Mode to OFF",
+        28: "NOT Resting but RELAY is not engaged for some reason",
+        29: "ON/OFF stays off because WIND GRAPH is illegal (current step is set for > 100 amps)",
+        30: "PkAmpsOverLimit… Software detected too high of PEAK output current",
+        31: "AD1CH.IbattMinus > 900 Peak negative battery current > 90.0 amps (Classic 250)",
+        32: "Aux 2 input commanded Classic off. for HI or LO (Aux2Function == 15 or 16)",
+        33: "OCP in a mode other than Solar or PV-Uset",
+        34: "AD1CH.IbattMinus > 900 Peak negative battery current > 90.0 amps (Classic 150, 200)",
+        35: "Battery voltage is less than Low Battery Disconnect (LBD) Typically Vbatt is less than 8.5 volts",
+        104: "104?=14?: PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
+        }
+    try:
+        decoded["ReasonForRestingText"] = rest_reason_arr[decoded["ReasonForResting"]]
+    except:
+        log.error("ReasonForRestingText Error ")
 
     return decoded

@@ -70,14 +70,15 @@ def handleArgs(argv,argVals):
                      "mqtt_pass=",
                      "wake_publish_rate=",
                      "snooze_publish_rate=",
-                     "wake_publishes="])
+                     "wake_publishes=",
+                     "homeassistant"])
     except getopt.GetoptError:
-        print("Error parsing command line parameters, please use: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}>".format( \
+        print("Error parsing command line parameters, please use: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}> --homeassistant".format( \
                     argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ("Parameter help: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}>".format( \
+            print ("Parameter help: py --classic <{}> --classic_port <{}> --classic_name <{}> --mqtt <{}> --mqtt_port <{}> --mqtt_root <{}> --mqtt_user <username> --mqtt_pass <password> --wake_publish_rate <{}> --snooze_publish_rate <{}> --wake_publishes <{}> --homeassistant".format( \
                     argVals['classicHost'], argVals['classicPort'], argVals['classicName'], argVals['mqttHost'], argVals['mqttPort'], argVals['mqttRoot'], argVals['awakePublishRate'], argVals['snoozePublishRate'], int(argVals['awakePublishLimit']*argVals['awakePublishRate'])))
             sys.exit()
         elif opt in ('--classic'):
@@ -102,6 +103,8 @@ def handleArgs(argv,argVals):
             argVals['snoozePublishRate'] = int(validateIntParameter(arg,"snooze_publish_rate", argVals['snoozePublishRate']))
         elif opt in ("--wake_publishes"):
             argVals['awakePublishLimit'] = int(validateIntParameter(arg,"wake_publishes", argVals['awakePublishLimit']))
+        elif opt in ("--homeassistant"):
+            argVals['homeassistant'] = True
 
     #Validate the wake/snooze stuff
     if (argVals['snoozePublishRate'] < argVals['awakePublishRate']):
@@ -128,6 +131,7 @@ def handleArgs(argv,argVals):
     argVals['mqttUser'] = argVals['mqttUser'].strip()
 
 
+    log.info("homeassistant = {}".format(argVals['homeassistant']))
 
     log.info("classicHost = {}".format(argVals['classicHost']))
     log.info("classicPort = {}".format(argVals['classicPort']))
