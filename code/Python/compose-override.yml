@@ -11,6 +11,8 @@ services:
       - MQTT_HOST=mosquitto
       - MQTT_PORT=1883
       - MQTT_ROOT=ClassicMQTT
+      # uncomment to enable Home Assistant discovery
+      # - HA_ENABLED=True
  #     - MQTT_USER=ClassicPublisher
  #     - MQTT_PASS=ClassicPub123
 

@@ -397,7 +397,7 @@ def periodic(modbus_stop):
                     modbusErrorCount = 0
                     if (not infoPublished): #Check if the Info has been published yet
                         #
-                        if ( argumentValues['homeassistant'] == True ): #Check if HA_enabled is true
+                        if ( homeassistantEnabled ): #Check if HA_enabled is true
                             log.debug("Call mqttHAautodiscovery" )
                             mqttHAautodiscovery( data )
                             # wait 1 second for HA to receive and create device
@@ -412,7 +412,7 @@ def periodic(modbus_stop):
                         #
                     if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
                         #
-                        if ( argumentValues['homeassistant'] == True ): #Check if HA_enabled is true
+                        if ( homeassistantEnabled ): #Check if HA_enabled is true
                             # re-send ChargeState because of icon
                             if mqttLastCSicon != data["ChargeStateIcon"]:
                                 mqttLastCSicon = data["ChargeStateIcon"]

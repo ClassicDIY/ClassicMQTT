@@ -100,6 +100,7 @@ def encodeClassicData_info(decoded):
     # "deviceName":"CLASSIC",
     classicData["deviceName"] = "".join(chr(x) for x in uint_array).strip(chr(0))
     # "buildDate":"Tuesday, February 6, 2018",
+    bdate = datetime.date(decoded["Year"],decoded["Month"],decoded["Day"])
     classicData["buildDate"] = bdate.strftime("%A, %B %d, %Y").replace(' 0', ' ') # get rid of the stupid leading 0 in date.
     # "deviceType":"Classic",
     classicData["deviceType"] = "Classic"
