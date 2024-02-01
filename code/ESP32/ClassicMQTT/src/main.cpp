@@ -24,7 +24,7 @@ using namespace std;
 #define WAKE_PUBLISH_RATE 2000
 #define SNOOZE_PUBLISH_RATE 300000
 #define WAKE_COUNT 60
-#define CONFIG_VERSION "V1.3.4" // major.minor.build (major or minor will invalidate the configuration)
+#define CONFIG_VERSION "V1.3.5" // major.minor.build (major or minor will invalidate the configuration)
 #define NUMBER_CONFIG_LEN 6
 #define WATCHDOG_TIMER 600000 //time in ms to trigger the watchdog
 
@@ -551,11 +551,13 @@ void WiFiEvent(WiFiEvent_t event)
 {
 	logd("[WiFi-event] event: %d", event);
 	String s;
+	String ip;
 	StaticJsonDocument<128> doc;
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
-		doc["IP"] = WiFi.localIP().toString().c_str();
+		ip = WiFi.localIP().toString();
+		doc["IP"] = ip.c_str();
 		doc["ApPassword"] = TAG;
 		serializeJson(doc, s);
 		s += '\n';
