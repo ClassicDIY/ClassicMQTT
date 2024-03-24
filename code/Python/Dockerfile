@@ -1,4 +1,4 @@
-FROM python:3.7.6-slim-stretch
+FROM python:3.9.19-slim
 
 RUN pip install --no-cache-dir pymodbus paho-mqtt
 
