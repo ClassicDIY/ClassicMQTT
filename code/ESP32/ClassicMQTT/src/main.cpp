@@ -131,7 +131,7 @@ void publish(const char *subtopic, const char *value, boolean retained = false)
 // note, add 0.01 as a work around for Android JSON deserialization bug with float
 void publishReadings()
 {
-	StaticJsonDocument<1024> root;
+	JsonDocument root;
 	if ((_boilerPlateReadBitField & 0x0f) == 0x0f && _boilerPlateInfoPublished == false)
 	{
 		_boilerPlateInfoPublished = true;
@@ -552,7 +552,7 @@ void WiFiEvent(WiFiEvent_t event)
 	logd("[WiFi-event] event: %d", event);
 	String s;
 	String ip;
-	StaticJsonDocument<128> doc;
+	JsonDocument doc;
 	switch (event)
 	{
 	case SYSTEM_EVENT_STA_GOT_IP:
@@ -583,7 +583,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 	logd("MQTT Message arrived [%s]  qos: %d len: %d index: %d total: %d", topic, properties.qos, len, index, total);
 	printHexString(payload, len);
 
-	StaticJsonDocument<64> doc;
+	JsonDocument doc;
 	DeserializationError err = deserializeJson(doc, payload);
 	if (err) // not json!
 	{
@@ -757,7 +757,7 @@ void loop()
 		{
 			String s = Serial.readStringUntil('}');
 			s += "}";
-			StaticJsonDocument<128> doc;
+			JsonDocument doc;
 			DeserializationError err = deserializeJson(doc, s);
 			if (err)
 			{

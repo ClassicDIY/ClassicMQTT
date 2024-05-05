@@ -50,5 +50,6 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/Me/Dev/Github/ClassicMQTT/code/ESP32/ClassicMQTT/.pio/libdeps/esp32dev/ArduinoJson_ID64"
 }

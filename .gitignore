@@ -34,3 +34,7 @@
 code/Python/Larry.env
 code/Python/classic_mqtt_compose _larry.yml
 
+/code/ESP32/ClassicMQTT/build
+/code/ESP32/.vscode
+/code/ESP32/ClassicMQTT/.vscode
+/code/ESP32/ClassicMQTT/.vscode
