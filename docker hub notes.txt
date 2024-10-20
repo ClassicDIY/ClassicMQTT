@@ -1,0 +1,16 @@
+
+1. If not in .ssh, go to docker hub, login and get access token in account settings->Security New Access Token.
+2. On the system that has the classicmqtt running: docker login
+3. make sure classicmqtt container image is ready to upload to docker-hub with tag classicdiy/classicmqtt:latest
+4. docker push classicdiy/classicmqtt:latest
+
+
+
+docker login -u classicdiy
+At the password prompt, enter the personal access token
+
+
+docker build -t classicdiy/classicmqtt:latest .
+docker push classicdiy/classicmqtt:latest
+docker run --name classic_mqtt classicdiy/classicmqtt --classic 10.10.0.43 --classic_port 502 --classic_name MyWorkshop --mqtt 10.10.0.38 --mqtt_port 1883 --mqtt_root ClassicMQTT --mqtt_user ClassicPublisher --mqtt_pass ClassicPub123
+
