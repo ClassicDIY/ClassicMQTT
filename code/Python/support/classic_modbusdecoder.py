@@ -303,10 +303,13 @@ def getModbusData(modeAwake, classicHost, classicPort):
         34: "AD1CH.IbattMinus > 900 Peak negative battery current > 90.0 amps (Classic 150, 200)",
         35: "Battery voltage is less than Low Battery Disconnect (LBD) Typically Vbatt is less than 8.5 volts",
         104: "104?=14?: PV input is available but V is rising too slowly. Low Light or bad connection(Solar mode)",
+        111: "Normal Power up boot."
         }
     try:
-        decoded["ReasonForRestingText"] = rest_reason_arr[decoded["ReasonForResting"]]
+        idx = decoded["ReasonForResting"]
+        decoded["ReasonForRestingText"] = rest_reason_arr[idx]
     except:
-        log.error("ReasonForRestingText Error ")
+        log.error("ReasonForRestingText Error index:{}".format(idx))
+        decoded["ReasonForRestingText"] = "Unknown"
 
     return decoded
