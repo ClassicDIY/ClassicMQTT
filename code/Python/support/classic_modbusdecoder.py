@@ -18,7 +18,7 @@
 
 from pymodbus.constants import Endian
 from pymodbus.client import ModbusTcpClient as ModbusClient
-from Payload import BinaryPayloadDecoder
+from support.Payload import BinaryPayloadDecoder
 from collections import OrderedDict
 import logging
 import sys
