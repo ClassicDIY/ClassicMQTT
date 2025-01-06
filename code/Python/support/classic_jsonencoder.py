@@ -31,6 +31,9 @@ def encodeClassicData_readings(decoded):
     classicData["ChargeState"] = decoded["ChargeStage"] #it is mis-labeled in the ESP32 code
     classicData["ChargeStateIcon"] = decoded["ChargeStateIcon"]
     classicData["ChargeStateText"] = decoded["ChargeStateText"]
+    classicData["Aux1FunctionText"] = decoded["Aux1FunctionText"]
+    classicData["Aux2FunctionText"] = decoded["Aux2FunctionText"]
+    classicData["MPPTModeText"] = decoded["MPPTModeText"]
     # "InfoFlagsBits":-1308610300,
     classicData["InfoFlagsBits"] = decoded["InfoFlagsBits"]
     # "ReasonForResting":104,
@@ -107,7 +110,7 @@ def encodeClassicData_info(decoded):
     # "endingAmps":13.01,
     classicData["endingAmps"] = decoded["endingAmps"]
     # "hasWhizbang":true,
-    classicData["hasWhizbang"] = (decoded["Aux1and2Function"] & 0x3f00)>>8 == 18
+    classicData["hasWhizbang"] = (decoded["Aux2Function"] & 0x3f) == 18
     # "lastVOC":10.21,
     classicData["lastVOC"] = decoded["lastVOC"]
     # "model":"Classic 150 (rev 4)",

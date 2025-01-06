@@ -23,7 +23,7 @@ from collections import OrderedDict
 import logging
 import sys
 
-log = logging.getLogger("classic_modbusdecoder")
+log = logging.getLogger('classic_mqtt')
 
 
 # --------------------------------------------------------------------------- #
@@ -35,7 +35,7 @@ def getRegisters(theClient, addr, cnt):
         if result.function_code >= 0x80:
             log.error(
                 "error getting {} for {} bytes, result.function_code >=0x80: {}".format(
-                    addr, count, result.function_code
+                    addr, cnt, result.function_code
                 )
             )
             return {}
@@ -133,8 +133,8 @@ def doDecode(addr, decoder):
         decoded = OrderedDict(
             [
                 ("MPPTMode", decoder.decode_16bit_uint()),  # 4164
-                ("Aux1Function", decoder.decode_8bit_int()),  # 4165
-                ("Aux2Function", decoder.decode_8bit_int()),  # 4165
+                ("Aux2Function", decoder.decode_8bit_int()),  # 4165 MSB
+                ("Aux1Function", decoder.decode_8bit_int()),  # 4165 LSB
             ]
         )
     elif addr == 4209:
@@ -327,7 +327,31 @@ def getModbusData(modeAwake, classicHost, classicPort):
         )
 
     # AUX configured function
-    AUX_funct = {
+    AUX1_funct = {
+        1: "DIVERSION SLW+",
+        2: "DIVERSION SLW-",
+        3: "BAT DIV V REL+",
+        4: "BAT DIV V REL-",
+        5: "GEN STOP +",
+        6: "GEN STOP -",
+        7: "PV V TRIGGER +",
+        8: "PV V TRIGGER -",
+        9: "MANUAL ON-OFF",
+        10: "BULK +",
+        11: "RESTING +",
+        12: "ERRORS 1 +",
+        13: "TOGGLE TEST",
+        14: "NITE LITE HIGH",
+        15: "NITE LITE LOW",
+        16: "WIND CLIPPER +",
+        17: "FLOAT +",
+        18: "FLOAT -",
+        19: "VENT FAN +",
+        20: "VENT FAN -",
+        21: "GFP TRIP",
+    }
+
+    AUX2_funct = {
         0: "DIVERSION HIGH PWM",
         1: "DIVERSION LOW PWM",
         2: "WASTE NOT HIGH",
@@ -348,8 +372,9 @@ def getModbusData(modeAwake, classicHost, classicPort):
         17: "Active HIGH (input) Float",
         18: "Whizbang Junior (WB Jr.)",
     }
+
     try:
-        decoded["Aux1FunctionText"] = AUX_funct[decoded["Aux1Function"]]
+        decoded["Aux1FunctionText"] = AUX1_funct[decoded["Aux1Function"] & 0x3f] #Aux12Function bits 0-5
     except:
         log.error(
             "Aux1FunctionText error. Undefined value:{}".format(decoded["Aux1Function"])
@@ -358,7 +383,7 @@ def getModbusData(modeAwake, classicHost, classicPort):
             str(decoded["Aux1Function"])
         )
     try:
-        decoded["Aux2FunctionText"] = AUX_funct[decoded["Aux2Function"]]
+        decoded["Aux2FunctionText"] = AUX2_funct[decoded["Aux2Function"]& 0x3f] #Aux12Function bits 8-13
     except:
         log.error(
             "Aux2FunctionText error. Undefined value:{}".format(decoded["Aux2Function"])

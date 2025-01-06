@@ -253,10 +253,11 @@ def mqttHApublish( sensor, name, units, icon, inforead, vtemplate, data ):
     mqttClient.publish(HA_topic, HA_msg,  qos=0, retain=False)
     #
 
-def mqttHAautodiscovery( data ):
+def mqttHA_autodiscovery( data ):
     # publisch HA autodiscovery
     global mqttClient, argumentValues, mqttDeviceModel, mqttDeviceFirmware
     #
+    log.debug("mqttHA_autodiscovery")
     mqttDeviceModel = "Classic {}V (rev {})".format(data["Type"],data["PCB"])
     mqttDeviceFirmware = "{:04n}{:02n}{:02n}.app.{}.net.{}".format(data["Year"],data["Month"],data["Day"],data['app_rev'],data['net_rev'])
     #
@@ -389,6 +390,7 @@ def periodic(modbus_stop):
         #log.debug("in Periodic")
         try:
             if timeToPublish() and mqttConnected:
+                log.debug("Call getModbusData" )
                 data = {}
                 #Get the Modbus Data and store it.
                 data = getModbusData(modeAwake, argumentValues['classicHost'], argumentValues['classicPort'])
@@ -397,9 +399,8 @@ def periodic(modbus_stop):
                     modbusErrorCount = 0
                     if (not infoPublished): #Check if the Info has been published yet
                         #
-                        if ( homeassistantEnabled ): #Check if HA_enabled is true
-                            log.debug("Call mqttHAautodiscovery" )
-                            mqttHAautodiscovery( data )
+                        if ( homeassistantEnabled is True): #Check if HA_enabled is true
+                            mqttHA_autodiscovery( data )
                             # wait 1 second for HA to receive and create device
                             time.sleep(1)
                             log.debug("Done mqttHAautodiscovery" )
@@ -412,7 +413,7 @@ def periodic(modbus_stop):
                         #
                     if mqttPublish(mqttClient,encodeClassicData_readings(data),"readings"):
                         #
-                        if ( homeassistantEnabled ): #Check if HA_enabled is true
+                        if ( homeassistantEnabled  is True): #Check if HA_enabled is true
                             # re-send ChargeState because of icon
                             if mqttLastCSicon != data["ChargeStateIcon"]:
                                 mqttLastCSicon = data["ChargeStateIcon"]
