@@ -9,6 +9,6 @@ Cons: Classic only supports one TCP connection at a time, so no other connection
 
 
 <p align="center">
-  <img src="./View_1.png" width="320"/>
-  <img src="./View_2.jpg" width="320"/>
+  <img src="./View_1.png" width="600"/>
+  <img src="./View_2.png" width="600"/>
 </p>
