@@ -1,0 +1,122 @@
+views:
+  - path: default_view
+    title: Home
+    cards:
+      - type: entities
+        entities:
+          - entity: sensor.input_voltage
+          - entity: sensor.input_current
+          - entity: sensor.power_output
+          - entity: sensor.battery_voltage
+          - entity: sensor.output_current
+          - entity: sensor.battery_current
+          - entity: sensor.soc
+          - entity: sensor.daily_energy
+          - entity: sensor.lifetime_energy
+          - entity: sensor.daily_charge
+          - entity: sensor.daily_discharge
+          - entity: sensor.net_amphours
+          - entity: sensor.remaining_amphours
+          - entity: sensor.total_amphours
+        title: Classic
+      - type: entities
+        entities:
+          - entity: sensor.charge_state_code
+          - entity: sensor.charge_state
+          - entity: sensor.battery_temperature
+          - entity: sensor.battery_power
+          - entity: sensor.fet_temperature
+          - entity: sensor.pcb_temperature
+          - entity: sensor.shunt_temperature
+          - entity: sensor.power_consumption
+          - entity: sensor.current_consumption
+          - entity: sensor.reason_for_resting_code
+          - entity: sensor.reason_for_resting_2
+  - type: sections
+    max_columns: 4
+    title: Sunsynk
+    path: sunsynk
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Classic
+            heading_style: title
+            badges:
+              - type: entity
+                entity: sensor.charge_state
+              - type: entity
+                entity: sensor.reason_for_resting_2
+            icon: mdi:solar-panel
+            grid_options:
+              columns: 36
+              rows: 1
+          - type: custom:sunsynk-power-flow-card
+            cardstyle: lite
+            show_solar: true
+            battery:
+              energy: sensor.daily_energy
+              shutdown_soc: 15
+              show_daily: true
+            solar:
+              show_daily: false
+              mppts: 1
+              max_power: 0
+            load:
+              show_daily: false
+            grid:
+              show_daily_buy: false
+              show_daily_sell: false
+              show_nonessential: false
+            entities:
+              inverter_current_164: sensor.current_consumption
+              grid_connected_status_194: binary_sensor.sunsynk_grid_connected_status
+              inverter_status_59: sensor.battery_charge_state
+              day_battery_charge_70: sensor.daily_charge
+              day_battery_discharge_71: sensor.daily_discharge
+              battery_voltage_183: sensor.battery_voltage
+              battery_power_190: sensor.battery_power
+              battery_current_191: sensor.battery_current
+              grid_power_169: sensor.power_output
+              day_load_energy_84: sensor.daily_energy
+              essential_power: sensor.power_consumption
+              nonessential_power: none
+              aux_power_166: sensor.power_output
+              day_pv_energy_108: sensor.sunsynk_day_pv_energy
+              pv1_power_186: sensor.power_output
+              pv2_power_187: sensor.power_output
+              pv1_voltage_109: sensor.input_voltage
+              pv1_current_110: sensor.input_current
+              environment_temp: sensor.fet_temperature
+              battery_temp_182: sensor.battery_temperature
+              battery_status: sensor.charge_state_code
+              battery_soc_184: sensor.soc
+              inverter_voltage_L2: sensor.battery_voltage
+              dc_transformer_temp_90: sensor.fet_temperature
+              radiator_temp_91: sensor.pcb_temperature
+            title_colour:
+              - 0
+              - 128
+              - 192
+            show_battery: true
+            show_grid: false
+            inverter:
+              three_phase: false
+              auto_scale: false
+              modern: true
+              autarky: 'no'
+              model: solaredge
+              colour:
+                - 0
+                - 128
+                - 192
+            card_height: '600'
+            large_font: true
+            decimal_places_energy: 1
+            decimal_places: 1
+            wide: false
+            card_width: '500'
+            grid_options:
+              columns: full
+              rows: 4
+        column_span: 2

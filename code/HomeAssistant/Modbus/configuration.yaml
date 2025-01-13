@@ -1,0 +1,299 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+
+modbus:
+  - name: modbus_hub
+    type: tcp
+    host: 10.10.0.12 # CHANGE TO YOUR CLASSIC'S IP ADDRESS
+    port: 502
+    sensors:
+      - name: "Battery Voltage"
+        unique_id: "dispavgVbatt"
+        address: 4114
+        input_type: holding
+        state_class: measurement
+        device_class: voltage
+        unit_of_measurement: "V"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Input Voltage"
+        unique_id: "dispavgVpv"
+        address: 4115
+        input_type: holding
+        state_class: measurement
+        device_class: voltage
+        unit_of_measurement: "V"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Output Current"
+        unique_id: "IbattDisplayS"
+        address: 4116
+        input_type: holding
+        state_class: measurement
+        device_class: current
+        unit_of_measurement: "A"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Input Current"
+        unique_id: "PvInputCurrent"
+        address: 4120
+        input_type: holding
+        state_class: measurement
+        device_class: current
+        unit_of_measurement: "A"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Battery Temperature"
+        unique_id: "BATTtemperature"
+        address: 4131
+        input_type: holding
+        state_class: measurement
+        device_class: temperature
+        unit_of_measurement: "°C"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "FET Temperature"
+        unique_id: "FETtemperature"
+        address: 4132
+        input_type: holding
+        state_class: measurement
+        device_class: temperature
+        unit_of_measurement: "°C"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "PCB Temperature"
+        unique_id: "PCBTemperature"
+        address: 4133
+        input_type: holding
+        state_class: measurement
+        device_class: temperature
+        unit_of_measurement: "°C"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Energy Today"
+        unique_id: "avgEbatt"
+        address: 4117
+        input_type: holding
+        state_class: total_increasing
+        device_class: energy
+        unit_of_measurement: "kWh"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Power Output"
+        unique_id: "avgPbatt"
+        address: 4118
+        input_type: holding
+        state_class: measurement
+        device_class: Power
+        unit_of_measurement: "W"
+        offset: 0
+        precision: 1
+        data_type: int16
+        
+      - name: "Battery Charge State"
+        unique_id: "ComboChargeStage"
+        address: 4119
+        input_type: holding
+        state_class: measurement
+        data_type: int16
+        
+      - name: "Lifetime Energy"
+        unique_id: "LifetimeEnergy"
+        address: 4125
+        input_type: holding
+        state_class: total_increasing
+        device_class: energy
+        unit_of_measurement: "kWh"
+        scale: 0.1
+        precision: 1
+        data_type: int32 
+        swap : word 
+
+      - name: "Reason For Resting Code"
+        unique_id: "ReasonForRestingCode"
+        address: 4274
+        input_type: holding
+        state_class: measurement
+        data_type: int16
+
+      - name: "Positive AmpHours"
+        unique_id: "whizDailyCharge"
+        address: 4364
+        input_type: holding
+        state_class: measurement
+        device_class: energy
+        unit_of_measurement: "AH"
+        data_type: int16
+        
+      - name: "Negative AmpHours"
+        unique_id: "whizDailyDischarge"
+        address: 4366
+        input_type: holding
+        state_class: measurement
+        device_class: energy
+        unit_of_measurement: "AH"
+        data_type: int16
+
+      - name: "Net AmpHours"
+        unique_id: "WbJrAmpHourNET"
+        address: 4368
+        input_type: holding
+        state_class: measurement
+        device_class: energy
+        unit_of_measurement: "AH"
+        data_type: int16
+        
+      - name: "Remaining AmpHours"
+        unique_id: "RemainingAmpHours"
+        address: 4376
+        input_type: holding
+        state_class: measurement
+        device_class: energy
+        unit_of_measurement: "AH"
+        data_type: int16
+        
+      - name: "Total AmpHours"
+        unique_id: "TotalAmpHours"
+        address: 4380
+        input_type: holding
+        state_class: measurement
+        device_class: energy
+        unit_of_measurement: "AH"
+        data_type: int16
+        
+      - name: "ShuntTempRaw"
+        unique_id: "ShuntTempRawID"
+        address: 4371
+        input_type: holding
+        state_class: measurement
+        device_class: temperature
+        unit_of_measurement: "°C"
+        data_type: int16
+
+      - name: "Battery Current"
+        unique_id: "WzBangJrCurrent32Signed"
+        address: 4370
+        input_type: holding
+        state_class: measurement
+        device_class: current
+        unit_of_measurement: "A"
+        scale: 0.1
+        offset: 0
+        precision: 1
+        data_type: int16
+
+      - name: "SOC"
+        unique_id: "whizSOC"
+        address: 4372
+        input_type: holding
+        state_class: measurement
+        device_class: battery
+        unit_of_measurement: "%"
+        data_type: int16
+
+sensor:
+  - platform: template
+    sensors:
+      power_consumption:
+        friendly_name: "PowerConsumption"
+        unique_id: "power_consumption"
+        unit_of_measurement: "W"  
+        device_class: "Power"
+        value_template: >
+          {% set icurrent = (states('sensor.input_current') | float) %}
+          {% set bcurrent = (states('sensor.battery_current') | float) %}
+          {% set bvoltage = (states('sensor.battery_voltage') | float) %}
+          {{ (icurrent - bcurrent) * bvoltage | round(0, 'ceil') }}
+          
+      battery_power:
+        friendly_name: "Battery Power"
+        unique_id: "battery_power"
+        unit_of_measurement: "W"  
+        device_class: "Power"
+        value_template: >
+          {% set bcurrent = (states('sensor.battery_current') | float) %}
+          {% set bvoltage = (states('sensor.battery_voltage') | float) %}
+          {{ bcurrent * bvoltage | round(0, 'ceil') }}
+          
+      current_consumption:
+        friendly_name: "CurrentConsumption"
+        unique_id: "current_consumption"
+        unit_of_measurement: "A"  
+        device_class: current
+        value_template: "{{ (states('sensor.input_current') | float) - (states('sensor.battery_current') | round(0, 'ceil') ) }}"
+        
+      shunt_temperature:
+        friendly_name: "ShuntTemperature"
+        device_class: "temperature"
+        unit_of_measurement: "°C"
+        value_template: "{{ states('sensor.ShuntTempRaw') | int|bitwise_and(255) -50.0 }}"
+        
+      charge_state:
+        friendly_name: "ChargeState"
+        value_template: >
+          {% set num = states('sensor.battery_charge_state') %}
+          {% set modes = {0:'Resting', 3:'Absorb', 4:'Bulk MPP', 5:'Float', 6:'Float MPPT', 7:'Equalize', 10:'Hyper VOC', 18:'Equalize MPPT' } %}
+          {% set num2 = num | int|bitwise_and(0xFF00)  %}
+          {% set num3 = (num2/0xFF)|int %}
+          {{ modes.get(num3, 'wtf') }}
+          
+      charge_state_code:
+        friendly_name: "ChargeStateCode"
+        value_template: >
+          {% set num = states('sensor.battery_charge_state') %}
+          {% set num2 = num | int|bitwise_and(0xFF00)  %}
+          {% set num3 = (num2/0xFF)|int %}
+          {{ num3 }}
+          
+      reason_for_resting:
+        friendly_name: "Reason For Resting"
+        unique_id: "reason_for_resting"
+        value_template: >
+          {% set num = states('sensor.reason_for_resting_code') %}
+          {% set modes = {1:'Wake state', 2:'Insane Ibatt on WakeUp state', 3:'Negative current on WakeUp state', 4:'Code 4', 5:'Too low power and Vbatt below set point for 90 seconds', 6:'FET temperature >= 100C Hot', 7:'Ground Fault', 8:'Arc Fault', 9:'Negative current', 10:'Battery less than 8 Volts', 11:'Low Light #1', 12:'Low Light #2', 13:'Code 13', 14:'Low Light #3', 15:'Low Light #4', 16:'Disabled', 17:'Vpv > 150V ', 18:'Vpv > 200V ', 19:'Vpv > 250V ', 22:'Average Battery Voltage is too high above set point', 25:'Battery breaker tripped', 26:'Mode changed while running', 27:'Code 27', 28:'NOT Resting but RELAY is not engaged for some reason', 29:'ON/OFF stays off because WIND GRAPH is insane', 30:'Code 30', 31:'Peak negative battery current', 32:'Aux 2 Logic input is high', 33:'OCP in a mode other than Solar or PV-Used', 34:'Code 34', 35:'LOW LOW battery', 36:'Battery temperature is Greater than specified', 38:'Other charging sources appear to be active', 136:'Battery temperature fell below specified', 104:'Watchdog WDT reset', 111:'Normal Power up boot..' } %}
+          {% set num3 = num|int %}
+          {{ modes.get(num3, 'wtf') }}
+
+
+
+        
+
+          
+
+
+    
+      
