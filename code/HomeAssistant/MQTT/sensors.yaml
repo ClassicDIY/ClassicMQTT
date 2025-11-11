@@ -1,87 +1,116 @@
 # 
-# add sensor: !include sensors.yaml to configuration.yaml
+# add to configuration.yaml
+#
   
-- platform: mqtt
-  name: ClassicMQTT_BatVoltage
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.BatVoltage}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_ChargeState
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{ value_json.ChargeState }}'
-  qos: 0
+mqtt:
+  sensor:
+    - name: ClassicMQTT_BatVoltage
+      state_topic: ClassicMQTT/classic/stat/readings
+      unique_id: ClassicMQTT_BatVoltage
+      value_template: "{{value_json.BatVoltage | float}}"
+      device_class: voltage
+      unit_of_measurement: V
+      qos: 0
 
-- platform: mqtt
-  name: ClassicMQTT_ChargeStateText
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: >
-    {{ {
-      0: "Resting",
-      3: "Absorb",
-      4: "Bulk MPPT",
-      5: "Float",
-      6: "Float MPPT",
-      7: "Equalize",
-      10: "HyperVOC",
-      18: "Equalize MPPT"}[value_json.ChargeState]
-    }}
-  qos: 0
+    - name: ClassicMQTT_ChargeState
+      unique_id: ClassicMQTT_ChargeState
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{ value_json.ChargeState}}"
+      qos: 0
 
-- platform: mqtt
-  name: ClassicMQTT_BatCurrent
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.BatCurrent}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_WhizbangBatCurrent
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.WhizbangBatCurrent}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_PVVoltage
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.PVVoltage}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_PVCurrent
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.PVCurrent}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_Power
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.Power}}'
-  qos: 0
+    - name: ClassicMQTT_ChargeStateText
+      unique_id: ClassicMQTT_ChargeStateText
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: >
+        {{ {
+          0: "Resting",
+          3: "Absorb",
+          4: "Bulk MPPT",
+          5: "Float",
+          6: "Float MPPT",
+          7: "Equalize",
+          10: "HyperVOC",
+          18: "Equalize MPPT"}[value_json.ChargeState]
+        }}
+      qos: 0
 
-- platform: mqtt
-  name: ClassicMQTT_SOC
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.SOC}}'
-  qos: 0
-  
-- platform: mqtt
-  name: ClassicMQTT_BatTemperature
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.BatTemperature}}'
-  qos: 0
-- platform: mqtt
-  name: ClassicMQTT_FETTemperature
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.FETTemperature}}'
-  qos: 0
-- platform: mqtt
-  name: ClassicMQTT_PCBTemperature
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.PCBTemperature}}'
-  qos: 0
-- platform: mqtt
-  name: ClassicMQTT_ShuntTemperature
-  state_topic: ClassicMQTT/classic/stat/readings
-  value_template: '{{value_json.ShuntTemperature}}'
-  qos: 0
+    - name: ClassicMQTT_BatCurrent
+      unique_id: ClassicMQTT_BatCurrent
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.BatCurrent | float}}"
+      device_class: current
+      unit_of_measurement: A
+      qos: 0
+
+    - name: ClassicMQTT_WhizbangBatCurrent
+      unique_id: ClassicMQTT_WhizbangBatCurrent
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.WhizbangBatCurrent | float}}"
+      device_class: current
+      unit_of_measurement: A
+      qos: 0
+
+    - name: ClassicMQTT_PVVoltage
+      unique_id: ClassicMQTT_PVVoltage
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.PVVoltage | float}}"
+      device_class: voltage
+      unit_of_measurement: V
+      qos: 0
+
+    - name: ClassicMQTT_PVCurrent
+      unique_id: ClassicMQTT_PVCurrent
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.PVCurrent  | float}}"
+      device_class: current
+      unit_of_measurement: A
+      qos: 0
+
+    - name: ClassicMQTT_Power
+      unique_id: ClassicMQTT_Power
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.Power | float}}"
+      device_class: power
+      unit_of_measurement: W
+      qos: 0
+
+    - name: ClassicMQTT_SOC
+      unique_id: ClassicMQTT_SOC
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.SOC | int}}"
+      device_class: battery
+      unit_of_measurement: "%"
+      qos: 0
+
+    - name: ClassicMQTT_BatTemperature
+      unique_id: ClassicMQTT_BatTemperature
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.BatTemperature | float}}"
+      device_class: temperature
+      unit_of_measurement: °C
+      qos: 0
+
+    - name: ClassicMQTT_FETTemperature
+      unique_id: ClassicMQTT_FETTemperature
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.FETTemperature | float}}"
+      device_class: temperature
+      unit_of_measurement: °C
+      qos: 0
+
+    - name: ClassicMQTT_PCBTemperature
+      unique_id: ClassicMQTT_PCBTemperature
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.PCBTemperature | float}}"
+      device_class: temperature
+      unit_of_measurement: °C
+      qos: 0
+
+    - name: ClassicMQTT_ShuntTemperature
+      unique_id: ClassicMQTT_ShuntTemperature
+      state_topic: ClassicMQTT/classic/stat/readings
+      value_template: "{{value_json.ShuntTemperature | float}}"
+      device_class: temperature
+      unit_of_measurement: °C
+      qos: 0
+
